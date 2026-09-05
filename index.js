@@ -4,10 +4,7 @@ const { getFirestore, collection, getDocs, query, where, doc, getDoc } = require
 const express = require('express');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-
-bot.catch((err, ctx) => {
-  console.log('ERROR BOT:', err.message);
-});
+bot.catch((err) => console.log('ERROR BOT:', err.message));
 
 const firebaseConfig = {
   apiKey: "AIzaSyC6eyDXaTCPgcb_se9vVP4rfwVkdc0ayn0",
@@ -20,7 +17,6 @@ const firebaseConfig = {
 
 const appFb = initializeApp(firebaseConfig);
 const db = getFirestore(appFb);
-
 let cacheChats = {};
 
 const BIENVENIDA = `💦 𝐁𝐢𝐞𝐧𝐯𝐞𝐧𝐢𝐝𝐨 𝐚 𝐥𝐚 𝐩𝐞𝐫𝐯𝐞𝐫𝐬𝐢𝐨‌𝐧 𝐭𝐨𝐭𝐚𝐥...
@@ -29,7 +25,7 @@ const BIENVENIDA = `💦 𝐁𝐢𝐞𝐧𝐯𝐞𝐧𝐢𝐝𝐨 𝐚 𝐥𝐚 
 𝐸𝑙 𝑖𝑛𝑓𝑖𝑒𝑟𝑛𝑜 𝑑𝑜𝑛𝑑𝑒 𝑡𝑜𝑑𝑜𝑠 𝑞𝑢𝑖𝑒𝑟𝑒𝑛 𝑒𝑠𝑡𝑎𝑟 😈
 
 📁 ❼ 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐈𝐀𝐒 𝐃𝐈𝐒𝐓𝐈𝐍𝐓𝐀𝐒
-   🔥 𝗘𝗻𝗰𝗼𝗻𝘁𝗿𝗮𝘀 𝗟𝗶𝗻𝗸𝘀 𝗱𝗲 🔥
+   🔥 𝗘𝗻𝗰𝗼𝗻𝘁𝗿𝗮𝗿𝗮𝘀 𝗟𝗶𝗻𝗸𝘀 𝗱𝗲 🔥
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 🔞 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗣𝗢𝗥𝗧𝗘𝗦 𝗫𝗫𝗫 🔞
@@ -68,13 +64,11 @@ function getMenuInline(){
 
 function textoSeguro(texto){
   if(!texto) return "Chat";
-  let bytes = 0;
-  let res = "";
+  let bytes = 0; let res = "";
   for(const c of texto){
     const b = Buffer.byteLength(c, 'utf8');
     if(bytes + b > 28) break;
-    bytes += b;
-    res += c;
+    bytes += b; res += c;
   }
   return res.trim() || "Chat";
 }
@@ -84,20 +78,16 @@ async function mandarSeccion(seccion, ctx){
     await ctx.answerCbQuery().catch(()=>{});
     const q = query(collection(db, "chats"), where("seccion", "==", seccion));
     const snap = await getDocs(q);
-    if(snap.empty){
-      return ctx.reply(`😈 Aún no hay nada en ${seccion}`, getMenuInline());
-    }
-    cacheChats = {};
-    let botones = [];
+    if(snap.empty) return ctx.reply(`😈 Aún no hay nada en ${seccion}`, getMenuInline());
+    cacheChats = {}; let botones = [];
     snap.forEach(d => {
       const data = { id: d.id,...d.data() };
       cacheChats[d.id] = data;
-      let nombreBoton = textoSeguro(data.nombre);
-      botones.push([Markup.button.callback(`${nombreBoton} | ${data.clicks||0}`, `ver_${d.id}`)]);
+      botones.push([Markup.button.callback(`${textoSeguro(data.nombre)} | ${data.clicks||0}`, `ver_${d.id}`)]);
     });
     botones.push([Markup.button.callback('⬅️ VOLVER AL MENU', 'volver_menu')]);
     await ctx.reply(`📁 ${seccion} - Toca un nombre:`, Markup.inlineKeyboard(botones));
-  } catch(e){ console.log('ERROR SECCION:', e); }
+  } catch(e){ console.log('ERROR SECCION:', e.message); }
 }
 
 async function mandarUnChat(id, ctx){
@@ -119,8 +109,7 @@ async function mandarUnChat(id, ctx){
       if(c.foto && c.foto.startsWith('http')){
         await ctx.replyWithPhoto(c.foto, { caption,...botones });
       } else if(c.foto && c.foto.startsWith('data:image')){
-        const base64 = c.foto.split(',')[1];
-        const buffer = Buffer.from(base64, 'base64');
+        const buffer = Buffer.from(c.foto.split(',')[1], 'base64');
         await ctx.replyWithPhoto({ source: buffer }, { caption,...botones });
       } else {
         await ctx.reply(caption, botones);
@@ -129,34 +118,32 @@ async function mandarUnChat(id, ctx){
       console.log('FOTO ERROR:', err.message);
       await ctx.reply(caption, botones);
     }
-  } catch(e){ console.log(e); }
+  } catch(e){ console.log(e.message); }
 }
 
 bot.start((ctx) => ctx.reply(BIENVENIDA, getMenuInline()));
 bot.command('menu', (ctx) => ctx.reply('Elige categoría 👇', getMenuInline()));
-
 bot.action('volver_menu', async (ctx) => {
   await ctx.answerCbQuery().catch(()=>{});
   await ctx.reply(BIENVENIDA, getMenuInline());
 });
-
 bot.action(/^sec_/, async (ctx) => {
   const seccion = ctx.callbackQuery.data.replace('sec_', '');
   await mandarSeccion(seccion, ctx);
 });
-
 bot.action(/^ver_/, async (ctx) => {
   const id = ctx.callbackQuery.data.replace('ver_', '');
   await mandarUnChat(id, ctx);
 });
 
-// FIX PARA RENDER - BORRA WEBHOOK Y ARRANCA EN POLLING
 (async () => {
   await bot.telegram.deleteWebhook().catch(()=>{});
   await bot.launch();
-  console.log('BOT INLINE FINAL ON - WEBHOOK BORRADO');
+  console.log('BOT SEXOMANIA RAILWAY ON');
 })();
 
 const app2 = express();
-app2.get('/', (req,res) => res.send('Bot INLINE FINAL ON'));
-app2.listen(process.env.PORT || 3000, () => console.log('Puerto OK'));
+app2.get('/', (req,res) => res.send('Bot Sexomania ON'));
+app2.get('/ping', (req,res) => res.send('pong'));
+const PORT = process.env.PORT || 3000;
+app2.listen(PORT, () => console.log('Web en', PORT));
