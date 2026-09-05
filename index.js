@@ -77,7 +77,7 @@ function getBienvenida(ctx){
 
 function getCaption(c, descLimpia){
 const nombreLimpio = c.nombre.replace(/#g|#r|#p|#y/g,'').trim();
-const emojiMap = {'𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗫𝗫𝗫':'🔞','𝗚𝗥𝗨𝗣𝗢𝗦 𝗫𝗫𝗫':'🔞','𝗚𝗥𝗨𝗣𝗢𝗦 𝗗𝗘 𝗩𝗘𝗡𝗧𝗔':'💸','𝗣𝗨𝗕𝗟𝗜𝗖𝗜𝗧𝗔𝗥𝗜𝗢𝗦':'📣','𝗘𝗡𝗧𝗥𝗘𝗧𝗘𝗡𝗜𝗠𝗜𝗘𝗡𝗧𝗢':'🍿','𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗥𝗧𝗘':'🎨','𝗟𝗢𝗦 𝗠𝗘𝗝𝗢𝗥𝗘𝗦 𝗕𝗢𝗧𝗦':'🤖'};
+const emojiMap = {'CANALES ADULTOS':'🔞','GRUPOS ADULTOS':'🔞','VENTAS':'💸','PUBLICITARIOS':'📣','ENTRETENIMIENTO':'🍿','ARTE':'🎨','BOTS':'🤖'};
 let emojiCat = '🔥';
 for(let k in emojiMap){ if(c.seccion.includes(k)) emojiCat=emojiMap[k]; }
 return `🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥
@@ -101,11 +101,11 @@ return `🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥
 
 function getMenuInline(){
   return Markup.inlineKeyboard([
-    [Markup.button.callback(`${getColorEmoji('CANALES ADULTOS')} 🔞 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗣𝗢𝗥𝗧𝗘𝗦 𝗫𝗫`.trim(),'sec_CANALES ADULTOS')],
-    [Markup.button.callback(`${getColorEmoji('GRUPOS ADULTOS')} 👥 𝗚𝗥𝗨𝗣𝗢𝗦 𝗗𝗘 𝗔𝗣𝗢𝗥𝗧𝗘𝗦 𝗫𝗫`.trim(),'sec_GRUPOS ADULTOS')],
+    [Markup.button.callback(`${getColorEmoji('CANALES ADULTOS')} 🔞 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗫𝗫𝗫`.trim(),'sec_CANALES ADULTOS')],
+    [Markup.button.callback(`${getColorEmoji('GRUPOS ADULTOS')} 🔞 𝗚𝗥𝗨𝗣𝗢𝗦 𝗫𝗫𝗫`.trim(),'sec_GRUPOS ADULTOS')],
     [Markup.button.callback(`${getColorEmoji('VENTAS')} 💸 𝗚𝗥𝗨𝗣𝗢𝗦 𝗗𝗘 𝗩𝗘𝗡𝗧𝗔`.trim(),'sec_VENTAS')],
-    [Markup.button.callback(`${getColorEmoji('PUBLICITARIOS')} 📣 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗣𝗨𝗕𝗟𝗜𝗖𝗜𝗧𝗔𝗥𝗜𝗢𝗦`.trim(),'sec_PUBLICITARIOS')],
-    [Markup.button.callback(`${getColorEmoji('ENTRETENIMIENTO')} 🍿 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗘𝗡𝗧𝗥𝗘𝗧𝗘𝗡𝗜𝗠𝗜𝗘𝗡𝗧𝗢`.trim(),'sec_ENTRETENIMIENTO')],
+    [Markup.button.callback(`${getColorEmoji('PUBLICITARIOS')} 📣 𝗣𝗨𝗕𝗟𝗜𝗖𝗜𝗧𝗔𝗥𝗜𝗢𝗦`.trim(),'sec_PUBLICITARIOS')],
+    [Markup.button.callback(`${getColorEmoji('ENTRETENIMIENTO')} 🍿 𝗘𝗡𝗧𝗥𝗘𝗧𝗘𝗡𝗜𝗠𝗜𝗘𝗡𝗧𝗢`.trim(),'sec_ENTRETENIMIENTO')],
     [Markup.button.callback(`${getColorEmoji('ARTE')} 🎨 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗥𝗧𝗘`.trim(),'sec_ARTE')],
     [Markup.button.callback(`${getColorEmoji('BOTS')} 🤖 𝗟𝗢𝗦 𝗠𝗘𝗝𝗢𝗥𝗘𝗦 𝗕𝗢𝗧𝗦`.trim(),'sec_BOTS')],
     [Markup.button.url('🌐 𝗣𝗔𝗡𝗘𝗟 𝗦𝗘𝗫𝗢𝗠𝗔𝗡𝗜𝗔 𝗟𝗜𝗡𝗞𝗦 🖥️','http://t.me/SexomaniaLinkbot/Panel')],
