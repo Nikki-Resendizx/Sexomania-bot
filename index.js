@@ -2,9 +2,7 @@ const { Telegraf, Markup } = require('telegraf');
 const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, getDocs, query, where, doc, getDoc, setDoc, updateDoc } = require('firebase/firestore');
 const express = require('express');
-
 const bot = new Telegraf(process.env.BOT_TOKEN);
-bot.catch((err) => console.log('ERROR:', err.message));
 
 const firebaseConfig = {
   apiKey: "AIzaSyC6eyDXaTCPgcb_se9vVP4rfwVkdc0ayn0",
@@ -18,8 +16,9 @@ const appFb = initializeApp(firebaseConfig);
 const db = getFirestore(appFb);
 
 let cacheChats = {};
-let configBot = { layout: "1x1", emoji: "fuego" };
-async function cargarConfig(){ try{ const s=await getDoc(doc(db,"config","bot")); if(s.exists()) configBot={...configBot,...s.data()}; }catch{} } cargarConfig();
+let pendingEdits = {};
+let configBot = { catColors: {} };
+(async()=>{ try{ const s=await getDoc(doc(db,"config","bot")); if(s.exists()) configBot={...configBot,...s.data()}; }catch{} })();
 
 function parseColor(t){
   if(!t) return t;
@@ -29,137 +28,127 @@ function parseColor(t){
   if(t.includes('#y')) return '🟡 ' + t.replace(/#y/g,'').trim();
   return t;
 }
-function getEmoji(){
-  if(configBot.emoji==="neon") return {c:"🟣",g:"🟢",v:"🟡",p:"🔵",e:"🟠",a:"💗",b:"⚪"};
-  return {c:"🔞",g:"👥",v:"💸",p:"📣",e:"🍿",a:"🎨",b:"🤖"};
-}
-function getMenuInline(){
-  const em=getEmoji();
-  const b=[
-    [Markup.button.callback(`${em.c} CANALES XXX`,'sec_CANALES ADULTOS')],
-    [Markup.button.callback(`${em.g} GRUPOS XXX`,'sec_GRUPOS ADULTOS')],
-    [Markup.button.callback(`${em.v} GRUPOS VENTAS`,'sec_VENTAS')],
-    [Markup.button.callback(`${em.p} PUBLICITARIOS`,'sec_PUBLICITARIOS')],
-    [Markup.button.callback(`${em.e} ENTRETENIMIENTO`,'sec_ENTRETENIMIENTO')],
-    [Markup.button.callback(`${em.a} ARTE`,'sec_ARTE')],
-    [Markup.button.callback(`${em.b} BOTS`,'sec_BOTS')]
-  ];
-  if(configBot.layout==="2x2") return Markup.inlineKeyboard([[b[0][0],b[1][0]],[b[2][0],b[3][0]],[b[4][0],b[5][0]],[b[6][0]],[Markup.button.url('🌐 APP OFICIAL','https://sexomania-links.netlify.app')]]);
-  b.push([Markup.button.url('🌐 APP OFICIAL','https://sexomania-links.netlify.app')]);
-  return Markup.inlineKeyboard(b);
-}
 function textoSeguro(t){ if(!t) return "Chat"; t=parseColor(t); let b=0,r=""; for(const c of t){ const bl=Buffer.byteLength(c,'utf8'); if(b+bl>28) break; b+=bl; r+=c; } return r.trim()||"Chat"; }
+function getColorEmoji(cat){ const col=configBot.catColors?.[cat]||""; if(col==="#g") return "🟢"; if(col==="#r") return "🔴"; if(col==="#p") return "🔵"; if(col==="#y") return "🟡"; return ""; }
 
-function getCaption(c){
+function extraerBotonesDeDescripcion(desc){
+  const botones=[]; const lineas=(desc||"").split('\n'); let descripcionLimpia=[];
+  for(let linea of lineas){
+    let l=linea.trim();
+    let m=l.match(/^#(p|r|g|y)\s*(.+?)\s*-\s*(https?:\/\/\S+|t\.me\/\S+|@\S+)/i);
+    if(m){
+      let color=m[1].toLowerCase(); let texto=m[2].trim(); let url=m[3].trim();
+      if(url.startsWith('t.me')||url.startsWith('@')) url='https://'+url.replace('@','t.me/');
+      if(!url.startsWith('http')) url='https://'+url;
+      let emoji=color==='r'?'🔴':color==='g'?'🟢':color==='y'?'🟡':'🔵';
+      botones.push({texto:`${emoji} ${texto}`, url});
+    }else descripcionLimpia.push(linea);
+  }
+  return {botones, descripcionLimpia: descripcionLimpia.join('\n').trim()};
+}
+
+// BIENVENIDA EXACTA COMO LA PEDISTE CON 6 FUEGOS
+function getBienvenida(ctx){
+  const nombre = ctx.from.first_name || 'Bebe';
+  const mention = `<a href="tg://user?id=${ctx.from.id}">${nombre}</a>`;
+  return `🔥﹡﹡﹡🔥
+
+💦 ${mention} 𝐁𝐢𝐞𝐧𝐯𝐞𝐧𝐢𝐝𝐨 𝐚 𝐥𝐚 𝐩𝐞𝐫𝐯𝐞𝐫𝐬𝐢𝐨‌𝐧 𝐭𝐨𝐭𝐚𝐥...
+
+   🔥🅢🅔🅧🅞🅜🅐🅝🅘🅐🔥 ᴸⁱⁿᵏˢ
+𝐸𝑙 𝑖𝑛𝑓𝑖𝑒𝑟𝑛𝑜 𝑑𝑜𝑛𝑑𝑒 𝑡𝑜𝑑𝑜𝑠 𝑞𝑢𝑖𝑒𝑟𝑒𝑛 𝑒𝑠𝑡𝑎𝑟 😈
+   🔥 𝗘𝗻𝗰𝗼𝗻𝘁𝗿𝗮𝗿𝗮𝘀 𝗟𝗶𝗻𝗸𝘀 𝗱𝗲 🔥
+<blockquote>━━━━━━━━━━━━━━━━━━━━━━━━━
+🔞 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗣𝗢𝗥𝗧𝗘𝗦 𝗫𝗫𝗫
+👥 𝗚𝗥𝗨𝗣𝗢𝗦 𝗗𝗘 𝗔𝗣𝗢𝗥𝗧𝗘𝗦 𝗫𝗫𝗫
+💸 𝗚𝗥𝗨𝗣𝗢𝗦 𝗗𝗘 𝗩𝗘𝗡𝗧𝗔
+📣 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗣𝗨𝗕𝗟𝗜𝗖𝗜𝗧𝗔𝗥𝗜𝗢𝗦
+🍿 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗘𝗡𝗧𝗥𝗘𝗧𝗘𝗡𝗜𝗠𝗜𝗘𝗡𝗧𝗢
+🎨 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗥𝗧𝗘
+🤖 𝗟𝗢𝗦 𝗠𝗘𝗝𝗢𝗥𝗘𝗦 𝗕𝗢𝗧𝗦
+━━━━━━━━━━━━━━━━━━━━━━━━━</blockquote>
+🌟 𝑷𝒂𝒓𝒂 𝒑𝒂𝒓𝒕𝒊𝒄𝒊𝒑𝒂𝒓, 𝒔𝒐𝒍𝒐 𝒅𝒆𝒃𝒆𝒔 𝒂𝒈𝒓𝒆𝒈𝒂𝒓 𝒏𝒖𝒆𝒔𝒕𝒓𝒐𝒔 𝒃𝒐𝒕𝒔 𝒅𝒆 𝒅𝒊𝒇𝒖𝒔𝒊𝒐𝒏, 𝒑𝒖𝒆𝒅𝒆 𝒔𝒆𝒓 𝒆𝒍 𝒅𝒆 𝒃𝒐𝒕𝒐𝒏𝒆𝒔 𝒐 𝒆𝒍 𝒅𝒆 𝒍𝒊𝒔𝒕𝒂𝒔.
+
+⚡ 𝑺𝑰 𝑮𝑼𝑺𝑻𝑨𝑺 𝑷𝑼𝑬𝑫𝑬𝑺 𝑰𝑵𝑮𝑹𝑬𝑺𝑨𝑹 𝑳𝑶𝑺 𝑫𝑶𝑺 𝑩𝑶𝑻𝑺 𝒀 𝑯𝑨𝑪𝑬𝑹 𝑻𝑬𝑵𝑬𝑹 𝑴𝑨𝒀𝑶𝑹 𝑨𝑳𝑪𝑨𝑵𝑪𝑬 ⚡
+
+¿𝗧𝗲 𝗮𝘁𝗿𝗲𝘃𝗲𝘀 𝗮 𝗲𝗻𝘁𝗿𝗮𝗿? 𝗘𝗹𝗶𝗴𝗲 𝗮𝗯𝗮𝗷𝗼 𝘆 𝗻𝗼 𝗵𝗮𝘆 𝘃𝘂𝗲𝗹𝘁𝗮 𝗮𝘁𝗿𝗮‌𝘀 👇
+
+🔥﹡﹡﹡🔥﹡﹡﹡🔥`;
+}
+
+// PLANTILLA EXACTA QUE PEDISTE CON 6 FUEGOS
+function getCaption(c, descLimpia){
 const nombreLimpio = c.nombre.replace(/#g|#r|#p|#y/g,'').trim();
-return `· • • •⊰🔥𖤍⋆🅢🅔🅧🅞🅜🅐🅝🅘🅐⋆𖤍🔥⊱• • • ·
+const emojiMap = {'CANALES ADULTOS':'🔞','GRUPOS ADULTOS':'👥','VENTAS':'💸','PUBLICITARIOS':'📣','ENTRETENIMIENTO':'🍿','ARTE':'🎨','BOTS':'🤖'};
+let emojiCat = '🔥';
+for(let k in emojiMap){ if(c.seccion.includes(k)) emojiCat=emojiMap[k]; }
+return `🔥﹡﹡﹡🔥
 
-<blockquote>═══◄•• 𝘾𝘼𝙏𝙀𝙂𝙊𝙍𝙄𝘼 ••►═══</blockquote>
-》 ${c.seccion} 《
+═══╡𝗖༶𝗔༶𝗧༶𝗘༶𝗚༶𝗢༶𝗥༶𝗜༶𝗔╞═══
+<blockquote>𝄆 ${emojiCat} ${c.seccion} 𝄇</blockquote>
 
-<blockquote>═══◄••𝙉𝙊𝙈𝘽𝙍𝙀 𝘿𝙀𝙇 𝘾𝙃𝘼𝙏••►═══</blockquote>
-》 ${nombreLimpio} 《
+   ════╡𝗡༶𝗢༶𝗠༶𝗕༶𝗥༶𝗘╞════
+<blockquote>𝄆 ${nombreLimpio} 𝄇</blockquote>
 
-<blockquote>═══◄•• 𝘿𝙀𝙎𝘾𝙍𝙄𝙋𝘾𝙄𝙊𝙉 ••►═══</blockquote>
+╔══╡𝗗༶𝗘༶𝗦༶𝗖༶𝗥༶𝗜༶𝗣༶𝗖༶𝗜༶𝗢༶𝗡╞══╗
+<blockquote>${descLimpia || c.desc || "Sin descripcion"}</blockquote>
+╚═════════════════════.✰.═╝
 
-${c.desc}
+   ═══╡👁️ ${c.clicks||0} 𝐕𝐈𝐒𝐓𝐀𝐒 𝐓𝐎𝐓𝐀𝐋𝐄𝐒╞═══
 
-<blockquote>📊 𝘼𝙇𝘾𝘼𝙉𝘾𝙀 𝙏𝙊𝙏𝘼𝙇⠅ 👁️ ${c.clicks||0} 𝚅𝙸𝚂𝚃𝙰𝚂</blockquote>
-
-· • • •⊰🔥𖤍⋆🅢🅔🅧🅞🅜🅐🅝🅘🅐⋆𖤍🔥⊱• • • ·`;
+🔥﹡﹡﹡🔥﹡﹡﹡🔥`;
 }
 
-async function mandarSeccion(sec, ctx){
-  await ctx.answerCbQuery().catch(()=>{});
-  const snap=await getDocs(query(collection(db,"chats"),where("seccion","==",sec)));
+function getMenuInline(){
+  return Markup.inlineKeyboard([
+    [Markup.button.callback(`${getColorEmoji('CANALES ADULTOS')} 🔞 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗣𝗢𝗥𝗧𝗘𝗦 𝗫𝗫`.trim(),'sec_CANALES ADULTOS')],
+    [Markup.button.callback(`${getColorEmoji('GRUPOS ADULTOS')} 👥 𝗚𝗥𝗨𝗣𝗢𝗦 𝗗𝗘 𝗔𝗣𝗢𝗥𝗧𝗘𝗦 𝗫𝗫`.trim(),'sec_GRUPOS ADULTOS')],
+    [Markup.button.callback(`${getColorEmoji('VENTAS')} 💸 𝗚𝗥𝗨𝗣𝗢𝗦 𝗗𝗘 𝗩𝗘𝗡𝗧𝗔`.trim(),'sec_VENTAS')],
+    [Markup.button.callback(`${getColorEmoji('PUBLICITARIOS')} 📣 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗣𝗨𝗕𝗟𝗜𝗖𝗜𝗧𝗔𝗥𝗜𝗢𝗦`.trim(),'sec_PUBLICITARIOS')],
+    [Markup.button.callback(`${getColorEmoji('ENTRETENIMIENTO')} 🍿 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗘𝗡𝗧𝗥𝗘𝗧𝗘𝗡𝗜𝗠𝗜𝗘𝗡𝗧𝗢`.trim(),'sec_ENTRETENIMIENTO')],
+    [Markup.button.callback(`${getColorEmoji('ARTE')} 🎨 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗥𝗧𝗘`.trim(),'sec_ARTE')],
+    [Markup.button.callback(`${getColorEmoji('BOTS')} 🤖 𝗟𝗢𝗦 𝗠𝗘𝗝𝗢𝗥𝗘𝗦 𝗕𝗢𝗧𝗦`.trim(),'sec_BOTS')],
+    [Markup.button.url('🌐 𝗣𝗔𝗡𝗘𝗟 𝗦𝗘𝗫𝗢𝗠𝗔𝗡𝗜𝗔 𝗟𝗜𝗡𝗞𝗦 🖥️','http://t.me/SexomaniaLinkbot/Panel')],
+    [Markup.button.url('🌐 APP OFICIAL','https://sexomania-links.netlify.app')]
+  ]);
+}
+function getAdminCatKeyboard(){
+  const cats=['CANALES ADULTOS','GRUPOS ADULTOS','VENTAS','PUBLICITARIOS','ENTRETENIMIENTO','ARTE','BOTS'];
+  let btns=[]; for(let c of cats){ let col=configBot.catColors?.[c]||"⚪"; btns.push([Markup.button.callback(`${col} ${c}`, 'editcat_'+c)]); }
+  btns.push([Markup.button.callback('⬅️ Volver','volver_menu')]); return Markup.inlineKeyboard(btns);
+}
+async function mandarSeccion(sec,ctx){
+  await ctx.answerCbQuery().catch(()=>{}); const snap=await getDocs(query(collection(db,"chats"),where("seccion","==",sec)));
   if(snap.empty) return ctx.reply(`😈 Nada en ${sec}`,getMenuInline());
-  cacheChats={}; let btns=[];
-  snap.forEach(d=>{cacheChats[d.id]={id:d.id,...d.data()}; btns.push([Markup.button.callback(`${textoSeguro(d.data().nombre)} | ${d.data().clicks||0}`,`ver_${d.id}`)])});
-  btns.push([Markup.button.callback('⬅️ VOLVER AL MENU','volver_menu')]);
-  await ctx.reply(`📁 ${sec} - Toca un nombre:`,Markup.inlineKeyboard(btns));
+  cacheChats={}; let btns=[]; snap.forEach(d=>{cacheChats[d.id]={id:d.id,...d.data()}; btns.push([Markup.button.callback(`${textoSeguro(d.data().nombre)} | ${d.data().clicks||0}`,`ver_${d.id}`)])});
+  btns.push([Markup.button.callback('⬅️ VOLVER AL MENU','volver_menu')]); await ctx.reply(`📁 ${sec}:`,Markup.inlineKeyboard(btns));
 }
-
-async function mandarUnChat(id, ctx){
-  await ctx.answerCbQuery().catch(()=>{});
-  let c=cacheChats[id];
-  if(!c){ const s=await getDoc(doc(db,"chats",id)); if(!s.exists()) return ctx.reply('No existe'); c={id:s.id,...s.data()}; }
-  const cap=getCaption(c);
-  const esAdmin = ctx.from.id==8695673050;
-
-  let kbButtons = [
-    [Markup.button.url('⚡ UNETE AQUI ⚡',c.link)],
-    [Markup.button.url('🔘 + Botonera','https://t.me/Sexomanialinksbot'),Markup.button.url('📝 + Listas','https://t.me/SexomaniaListas_Bot')],
-  ];
-
-  // SI ERES ADMIN, TE SALEN LOS BOTONES DE COLORES
-  if(esAdmin){
-    kbButtons.push([
-      Markup.button.callback('🟢 Verde','setcolor_'+id+'_#g'),
-      Markup.button.callback('🔴 Rojo','setcolor_'+id+'_#r'),
-      Markup.button.callback('🔵 Azul','setcolor_'+id+'_#p'),
-      Markup.button.callback('🟡 Amarillo','setcolor_'+id+'_#y')
-    ]);
-    kbButtons.push([Markup.button.callback('⚪ Quitar color','setcolor_'+id+'_none')]);
+async function mandarUnChat(id,ctx){
+  await ctx.answerCbQuery().catch(()=>{}); let c=cacheChats[id]; if(!c){ const s=await getDoc(doc(db,"chats",id)); if(!s.exists()) return ctx.reply('No existe'); c={id:s.id,...s.data()}; }
+  const {botones, descripcionLimpia}=extraerBotonesDeDescripcion(c.desc); const cap=getCaption(c,descripcionLimpia);
+  let kb=[]; for(let b of botones) kb.push([Markup.button.url(b.texto,b.url)]);
+  if(kb.length===0) kb.push([Markup.button.url('⚡ UNETE AQUI ⚡',c.link)]);
+  kb.push([Markup.button.url('🔘 + Botonera','https://t.me/Sexomanialinksbot'),Markup.button.url('📝 + Listas','https://t.me/SexomaniaListas_Bot')]);
+  if(ctx.from.id==8695673050){
+    kb.push([Markup.button.callback('🟢','setcolor_'+id+'_#g'),Markup.button.callback('🔴','setcolor_'+id+'_#r'),Markup.button.callback('🔵','setcolor_'+id+'_#p'),Markup.button.callback('🟡','setcolor_'+id+'_#y'),Markup.button.callback('⚪','setcolor_'+id+'_none')]);
+    kb.push([Markup.button.callback('🎨 EDITAR BOTONES','editbtns_'+id)]); kb.push([Markup.button.callback('🗑️ BORRAR BOTONES','clearbtns_'+id)]);
   }
-
-  kbButtons.push([Markup.button.callback('⬅️ ATRAS',`sec_${c.seccion}`)]);
-  const kb=Markup.inlineKeyboard(kbButtons);
-
-  try{
-    if(c.foto?.startsWith('http')) await ctx.replyWithPhoto(c.foto,{caption:cap, parse_mode:'HTML',...kb});
-    else if(c.foto?.startsWith('data:image')){ const buf=Buffer.from(c.foto.split(',')[1],'base64'); await ctx.replyWithPhoto({source:buf},{caption:cap, parse_mode:'HTML',...kb}); }
-    else await ctx.reply(cap,{parse_mode:'HTML',...kb});
-  }catch(e){ await ctx.reply(cap,{parse_mode:'HTML',...kb}); }
+  kb.push([Markup.button.callback('⬅️ Volver','sec_'+c.seccion)]); const kbd=Markup.inlineKeyboard(kb);
+  try{ if(c.foto?.startsWith('http')) await ctx.replyWithPhoto(c.foto,{caption:cap,parse_mode:'HTML',...kbd}); else await ctx.reply(cap,{parse_mode:'HTML',...kbd}); }catch(e){ await ctx.reply(cap,{parse_mode:'HTML',...kbd}); }
 }
-
-bot.start((ctx)=>ctx.reply(`· • • •⊰🔥𖤍⋆🅢🅔🅧🅞🅜🅐🅝🅘🅐⋆𖤍🔥⊱• • • ·
-
-<blockquote>═══◄•• 𝘽𝙄𝙀𝙉𝙑𝙀𝙉𝙄𝘿𝙊 ••►═══</blockquote>
-💦 A la perversion total...
-
-<blockquote>═══◄•• 𝘾𝘼𝙏𝙀𝙂𝙊𝙍𝙄𝘼𝙎 ••►═══</blockquote>
-Elige una categoria 👇
-
-· • • •⊰🔥𖤍⋆🅢🅔🅧🅞🅜🅐🅝🅘🅐⋆𖤍🔥⊱• • • ·`,{parse_mode:'HTML',...getMenuInline()}));
-bot.command('menu',(ctx)=>ctx.reply('Elige 👇',getMenuInline()));
-bot.command('admin', async (ctx)=>{
-  if(ctx.from.id!=8695673050) return ctx.reply('⛔ No eres admin');
-  await ctx.reply(`⚙️ PANEL ADMIN\n\nAhora puedes cambiar colores directo en el bot. Abre cualquier chat y abajo te salen los colores.`,{...Markup.inlineKeyboard([
-    [Markup.button.callback('📐 1x1','cfg_layout_1x1'),Markup.button.callback('📐 2x2','cfg_layout_2x2')],
-    [Markup.button.callback('🔥 Fuego','cfg_emoji_fuego'),Markup.button.callback('🟣 Neon','cfg_emoji_neon')],
-    [Markup.button.callback('👁️ Ver menu','volver_menu')]
-  ])});
-});
-
-// CAMBIAR COLOR DIRECTO DESDE EL BOT
-bot.action(/^setcolor_/, async (ctx)=>{
-  if(ctx.from.id!=8695673050) return ctx.answerCbQuery({text:"⛔ Solo admin"});
-  await ctx.answerCbQuery().catch(()=>{});
-  const data = ctx.callbackQuery.data.replace('setcolor_','');
-  const lastUnderscore = data.lastIndexOf('_');
-  const id = data.substring(0, lastUnderscore);
-  const color = data.substring(lastUnderscore+1);
-
-  try{
-    const ref = doc(db,"chats",id);
-    const snap = await getDoc(ref);
-    if(!snap.exists()) return ctx.reply('No existe');
-    let nombreActual = snap.data().nombre.replace(/#g|#r|#p|#y/g,'').trim();
-    let nuevoNombre = color==='none'? nombreActual : `${nombreActual} ${color}`;
-
-    await updateDoc(ref, { nombre: nuevoNombre });
-    if(cacheChats[id]) cacheChats[id].nombre = nuevoNombre;
-
-    await ctx.reply(`✅ Color cambiado a ${color==='none'?'SIN COLOR':color}\nNuevo nombre: ${nuevoNombre}\n\nVuelve a abrir la categoria para ver el cambio.`);
-  }catch(e){
-    await ctx.reply('Error: '+e.message);
-  }
-});
-
-bot.action(/^cfg_/, async (ctx)=>{ if(ctx.from.id!=8695673050) return; const d=ctx.callbackQuery.data; if(d.startsWith('cfg_layout_')) configBot.layout=d.replace('cfg_layout_',''); if(d.startsWith('cfg_emoji_')) configBot.emoji=d.replace('cfg_emoji_',''); await setDoc(doc(db,"config","bot"),configBot); await ctx.answerCbQuery({text:"Guardado ✅"}); await ctx.reply(`✅ Guardado`,getMenuInline()); });
-bot.action('volver_menu', async (ctx)=>{ await ctx.answerCbQuery().catch(()=>{}); await ctx.reply(`· • • •⊰🔥𖤍⋆🅢🅔🅧🅞🅜🅐🅝🅘🅐⋆𖤍🔥⊱• • • ·`,{parse_mode:'HTML',...getMenuInline()}); });
+bot.start((ctx)=>ctx.reply(getBienvenida(ctx),{parse_mode:'HTML',...getMenuInline()}));
+bot.command('menu',(ctx)=>ctx.reply(getBienvenida(ctx),{parse_mode:'HTML',...getMenuInline()}));
+bot.command('admin', async (ctx)=>{ if(ctx.from.id!=8695673050) return ctx.reply('⛔ No admin'); await ctx.reply(`⚙️ PANEL ADMIN`, Markup.inlineKeyboard([[Markup.button.callback('🎨 COLORES CATEGORIAS','admin_cats')],[Markup.button.callback('👁️ Ver menu','volver_menu')]])); });
+bot.action('admin_cats', async (ctx)=>{ if(ctx.from.id!=8695673050) return; await ctx.answerCbQuery().catch(()=>{}); await ctx.reply(`🎨 COLORES CATEGORIAS:`, getAdminCatKeyboard()); });
+bot.action(/^editcat_/, async (ctx)=>{ if(ctx.from.id!=8695673050) return; const cat=ctx.callbackQuery.data.replace('editcat_',''); await ctx.answerCbQuery().catch(()=>{}); await ctx.reply(`Color para ${cat}:`, Markup.inlineKeyboard([[Markup.button.callback('🟢 Verde','setcatcolor_'+cat+'_#g'),Markup.button.callback('🔴 Rojo','setcatcolor_'+cat+'_#r')],[Markup.button.callback('🔵 Azul','setcatcolor_'+cat+'_#p'),Markup.button.callback('🟡 Amarillo','setcatcolor_'+cat+'_#y')],[Markup.button.callback('⚪ Sin color','setcatcolor_'+cat+'_none')],[Markup.button.callback('⬅️ Atras','admin_cats')]])); });
+bot.action(/^setcatcolor_/, async (ctx)=>{ if(ctx.from.id!=8695673050) return; await ctx.answerCbQuery().catch(()=>{}); const data=ctx.callbackQuery.data.replace('setcatcolor_',''); const last=data.lastIndexOf('_'); const cat=data.substring(0,last); const color=data.substring(last+1); if(!configBot.catColors) configBot.catColors={}; if(color==='none') delete configBot.catColors[cat]; else configBot.catColors[cat]=color; await setDoc(doc(db,"config","bot"),configBot,{merge:true}); await ctx.reply(`✅ ${cat} -> ${color}`, getAdminCatKeyboard()); await ctx.reply(`Preview:`, getMenuInline()); });
+bot.action(/^editbtns_/, async (ctx)=>{ if(ctx.from.id!=8695673050) return; await ctx.answerCbQuery().catch(()=>{}); const id=ctx.callbackQuery.data.replace('editbtns_',''); pendingEdits[ctx.from.id]=id; await ctx.reply(`🎨 Manda botones:\n#p Texto - https://t.me/link\n#r Texto - link\n#g Texto - link\n\n/cancel para cancelar`); });
+bot.action(/^clearbtns_/, async (ctx)=>{ if(ctx.from.id!=8695673050) return; const id=ctx.callbackQuery.data.replace('clearbtns_',''); const ref=doc(db,"chats",id); const snap=await getDoc(ref); const {descripcionLimpia}=extraerBotonesDeDescripcion(snap.data().desc); await updateDoc(ref,{desc:descripcionLimpia}); if(cacheChats[id]) cacheChats[id].desc=descripcionLimpia; await ctx.answerCbQuery({text:"Borrados ✅"}); await ctx.reply("✅ Borrados"); });
+bot.action(/^setcolor_/, async (ctx)=>{ if(ctx.from.id!=8695673050) return; await ctx.answerCbQuery().catch(()=>{}); const data=ctx.callbackQuery.data.replace('setcolor_',''); const last=data.lastIndexOf('_'); const id=data.substring(0,last); const color=data.substring(last+1); const ref=doc(db,"chats",id); const snap=await getDoc(ref); let nombreActual=snap.data().nombre.replace(/#g|#r|#p|#y/g,'').trim(); let nuevo=color==='none'?nombreActual:`${nombreActual} ${color}`; await updateDoc(ref,{nombre:nuevo}); if(cacheChats[id]) cacheChats[id].nombre=nuevo; await ctx.reply(`✅ ${nuevo}`); });
+bot.command('cancel',(ctx)=>{ delete pendingEdits[ctx.from.id]; ctx.reply("❌ Cancelado"); });
+bot.on('text', async (ctx,next)=>{ if(ctx.from.id!=8695673050) return next(); if(!pendingEdits[ctx.from.id]) return next(); const id=pendingEdits[ctx.from.id]; const textoNuevo=ctx.message.text; if(textoNuevo.startsWith('/')) return next(); try{ const ref=doc(db,"chats",id); const snap=await getDoc(ref); const {descripcionLimpia}=extraerBotonesDeDescripcion(snap.data().desc); const nuevaDesc=descripcionLimpia+"\n"+textoNuevo; await updateDoc(ref,{desc:nuevaDesc}); if(cacheChats[id]) cacheChats[id].desc=nuevaDesc; delete pendingEdits[ctx.from.id]; await ctx.reply(`✅ Guardado!`); }catch(e){ await ctx.reply("Error: "+e.message); } });
+bot.action('volver_menu', async (ctx)=>{ await ctx.answerCbQuery().catch(()=>{}); await ctx.reply(getBienvenida(ctx),{parse_mode:'HTML',...getMenuInline()}); });
 bot.action(/^sec_/, async (ctx)=>{ await mandarSeccion(ctx.callbackQuery.data.replace('sec_',''),ctx); });
 bot.action(/^ver_/, async (ctx)=>{ await mandarUnChat(ctx.callbackQuery.data.replace('ver_',''),ctx); });
-
-(async()=>{ await bot.telegram.deleteWebhook().catch(()=>{}); await bot.launch(); console.log('BOT CON COLORES EN BOT ON'); })();
-const app2=express(); app2.get('/',(r,s)=>s.send('ON')); app2.get('/ping',(r,s)=>s.send('pong')); app2.listen(process.env.PORT||3000);
+(async()=>{ await bot.telegram.deleteWebhook().catch(()=>{}); await bot.launch(); console.log('BOT FINAL COMPLETO ON'); })();
+const app2=express(); app2.get('/',(r,s)=>s.send('ON')); app2.listen(process.env.PORT||3000);
