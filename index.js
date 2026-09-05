@@ -41,43 +41,59 @@ const BIENVENIDA = `💦 𝐁𝐢𝐞𝐧𝐯𝐞𝐧𝐢𝐝𝐨 𝐚 𝐥𝐚 
 🎨 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗥𝗧𝗘 🎨
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 🤖 𝗟𝗢𝗦 𝗠𝗘𝗝𝗢𝗥𝗘𝗦 𝗕𝗢𝗧𝗦 🤖
-━━━━━━━━━━━━━━━━━━━━━━━━━`;
+━━━━━━━━━━━━━━━━━━━━━━━━━
 
-// TECLADO AZUL COMO EN TU CAPTURA
-function getMenuPrincipal(){
-  return Markup.keyboard([
-    ['🔞 CANALES XXX'],
-    ['👥 GRUPOS XXX'],
-    ['💸 GRUPOS VENTAS'],
-    ['📣 PUBLICITARIOS'],
-    ['🍿 ENTRETENIMIENTO'],
-    ['🎨 ARTE'],
-    ['🤖 BOTS']
-  ]).resize();
+🌟 𝑷𝒂𝒓𝒂 𝒑𝒂𝒓𝒕𝒊𝒄𝒊𝒑𝒂𝒓, 𝒔𝒐𝒍𝒐 𝒅𝒆𝒃𝒆𝒔 𝒂𝒈𝒓𝒆𝒈𝒂𝒓 𝒏𝒖𝒆𝒔𝒕𝒓𝒐𝒔 𝒃𝒐𝒕𝒔 𝒅𝒆 𝒅𝒊𝒇𝒖𝒔𝒊𝒐𝒏, 𝒑𝒖𝒆𝒅𝒆 𝒔𝒆𝒓 𝒆𝒍 𝒅𝒆 𝒃𝒐𝒕𝒐𝒏𝒆𝒔 𝒐 𝒆𝒍 𝒅𝒆 𝒍𝒊𝒔𝒕𝒂𝒔.
+
+⚡ 𝑺𝑰 𝑮𝑼𝑺𝑻𝑨𝑺 𝑷𝑼𝑬𝑫𝑬𝑺 𝑰𝑵𝑮𝑹𝑬𝑺𝑨𝑹 𝑳𝑶𝑺 𝑫𝑶𝑺 𝑩𝑶𝑻𝑺 𝒀 𝑯𝑨𝑪𝑰 𝑻𝑬𝑵𝑬𝑹 𝑴𝑨𝒀𝑶𝑹 𝑨𝑳𝑪𝑨𝑵𝑪𝑬 ⚡
+
+¿𝗧𝗲 𝗮𝘁𝗿𝗲𝘃𝗲𝘀 𝗮 𝗲𝗻𝘁𝗿𝗮𝗿? 𝗘𝗹𝗶𝗴𝗲 𝗮𝗯𝗮𝗷𝗼 𝘆 𝗻𝗼 𝗵𝗮𝘆 𝘃𝘂𝗲𝗹𝘁𝗮 𝗮𝘁𝗿𝗮‌𝘀 👇`;
+
+function getMenuInline(){
+  return Markup.inlineKeyboard([
+    [Markup.button.callback('🔞 CANALES XXX', 'sec_CANALES ADULTOS')],
+    [Markup.button.callback('👥 GRUPOS XXX', 'sec_GRUPOS ADULTOS')],
+    [Markup.button.callback('💸 GRUPOS VENTAS', 'sec_VENTAS')],
+    [Markup.button.callback('📣 PUBLICITARIOS', 'sec_PUBLICITARIOS')],
+    [Markup.button.callback('🍿 ENTRETENIMIENTO', 'sec_ENTRETENIMIENTO')],
+    [Markup.button.callback('🎨 ARTE', 'sec_ARTE')],
+    [Markup.button.callback('🤖 BOTS', 'sec_BOTS')],
+    [Markup.button.url('🌐 APP OFICIAL', 'https://sexomania-links.netlify.app')]
+  ]);
 }
 
-function limpiarTexto(texto){
+// FIX NOMBRES BONITOS - CONSERVA EMOJIS Y LETRAS RARAS PERO CORTA POR BYTES
+function textoSeguro(texto){
   if(!texto) return "Chat";
-  return texto.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').substring(0,22).trim() || "Chat";
+  let bytes = 0;
+  let res = "";
+  for(const c of texto){
+    const b = Buffer.byteLength(c, 'utf8');
+    if(bytes + b > 28) break;
+    bytes += b;
+    res += c;
+  }
+  return res.trim() || "Chat";
 }
 
 async function mandarSeccion(seccion, ctx){
   try{
+    await ctx.answerCbQuery().catch(()=>{});
+    await ctx.reply(`🔍 Buscando en *${seccion}*...`, {parse_mode:'Markdown'});
     const q = query(collection(db, "chats"), where("seccion", "==", seccion));
     const snap = await getDocs(q);
 
     if(snap.empty){
-      return ctx.reply(`😈 Aún no hay nada en ${seccion}`, getMenuPrincipal());
+      return ctx.reply(`😈 Aún no hay nada en ${seccion}`, getMenuInline());
     }
 
     cacheChats = {};
     let botones = [];
-
     snap.forEach(d => {
       const data = { id: d.id,...d.data() };
       cacheChats[d.id] = data;
-      let nombreSeguro = limpiarTexto(data.nombre);
-      botones.push([Markup.button.callback(`${nombreSeguro} | ${data.clicks||0} vistas`, `ver_${d.id}`)]);
+      let nombreBoton = textoSeguro(data.nombre);
+      botones.push([Markup.button.callback(`${nombreBoton} • ${data.clicks||0}👁️`, `ver_${d.id}`)]);
     });
 
     botones.sort((a,b) => {
@@ -86,9 +102,12 @@ async function mandarSeccion(seccion, ctx){
       return (cacheChats[idB]?.clicks||0) - (cacheChats[idA]?.clicks||0);
     });
 
-    botones.push([Markup.button.callback('⬅️ VOLVER', 'volver_menu')]);
+    botones.push([Markup.button.callback('⬅️ VOLVER AL MENU', 'volver_menu')]);
 
-    await ctx.reply(`📁 ${seccion} - Toca un chat para verlo:`, Markup.inlineKeyboard(botones));
+    await ctx.reply(`📁 *${seccion}* - Toca un nombre:`, {
+      parse_mode:'Markdown',
+     ...Markup.inlineKeyboard(botones)
+    });
 
   } catch(e){ console.log(e); ctx.reply('Error: '+e.message); }
 }
@@ -103,22 +122,20 @@ async function mandarUnChat(id, ctx){
       c = { id: snap.id,...snap.data() };
     }
 
-    // YA SIN LINK DE ACCESO
     const caption = `📁 CATEGORIA: ${c.seccion}\n\n✍️ NOMBRE DEL CHAT ✍️\n${c.nombre}\n\n📝 DESCRIPCION 📝\n${c.desc}\n\n👁️ ${c.clicks||0} VISTAS`;
 
     const botones = Markup.inlineKeyboard([
       [Markup.button.url('⚡ UNETE AQUI ⚡', c.link)],
       [Markup.button.url('🔘 + Botonera', 'https://t.me/Sexomanialinksbot'), Markup.button.url('📝 + Listas', 'https://t.me/SexomaniaListas_Bot')],
-      [Markup.button.callback('⬅️ ATRAS', `sec_${c.seccion}`)]
+      [Markup.button.callback('⬅️ ATRAS', `sec_${c.seccion}`), Markup.button.callback('🏠 MENU', 'volver_menu')]
     ]);
 
-    // FIX FOTOS BASE64 Y HTTP
     try {
       if(c.foto && c.foto.startsWith('http')){
         await ctx.replyWithPhoto(c.foto, { caption,...botones });
       } else if(c.foto && c.foto.startsWith('data:image')){
-        const base64Data = c.foto.split(',')[1];
-        const buffer = Buffer.from(base64Data, 'base64');
+        const base64 = c.foto.split(',')[1];
+        const buffer = Buffer.from(base64, 'base64');
         await ctx.replyWithPhoto({ source: buffer }, { caption,...botones });
       } else {
         await ctx.reply(caption, botones);
@@ -130,19 +147,12 @@ async function mandarUnChat(id, ctx){
   } catch(e){ console.log(e); }
 }
 
-// COMANDOS
-bot.start((ctx) => ctx.reply(BIENVENIDA, getMenuPrincipal()));
-bot.hears('🔞 CANALES XXX', (ctx) => mandarSeccion('CANALES ADULTOS', ctx));
-bot.hears('👥 GRUPOS XXX', (ctx) => mandarSeccion('GRUPOS ADULTOS', ctx));
-bot.hears('💸 GRUPOS VENTAS', (ctx) => mandarSeccion('VENTAS', ctx));
-bot.hears('📣 PUBLICITARIOS', (ctx) => mandarSeccion('PUBLICITARIOS', ctx));
-bot.hears('🍿 ENTRETENIMIENTO', (ctx) => mandarSeccion('ENTRETENIMIENTO', ctx));
-bot.hears('🎨 ARTE', (ctx) => mandarSeccion('ARTE', ctx));
-bot.hears('🤖 BOTS', (ctx) => mandarSeccion('BOTS', ctx));
+bot.start((ctx) => ctx.reply(BIENVENIDA, getMenuInline()));
+bot.command('menu', (ctx) => ctx.reply('Elige categoría 👇', getMenuInline()));
 
 bot.action('volver_menu', async (ctx) => {
   await ctx.answerCbQuery().catch(()=>{});
-  await ctx.reply(BIENVENIDA, getMenuPrincipal());
+  await ctx.reply(BIENVENIDA, getMenuInline());
 });
 
 bot.action(/^sec_/, async (ctx) => {
@@ -155,9 +165,9 @@ bot.action(/^ver_/, async (ctx) => {
   await mandarUnChat(id, ctx);
 });
 
-bot.launch().then(()=> console.log('BOT FINAL ON'));
+bot.launch().then(()=> console.log('BOT INLINE FINAL ON'));
 console.log('Bot SEXOMANIA listo');
 
 const app2 = express();
-app2.get('/', (req,res) => res.send('Bot FINAL ON'));
+app2.get('/', (req,res) => res.send('Bot INLINE FINAL ON'));
 app2.listen(process.env.PORT || 3000);
