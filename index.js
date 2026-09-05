@@ -51,7 +51,7 @@ function extraerBotonesDeDescripcion(desc){
 function getBienvenida(ctx){
   const nombre = ctx.from.first_name || 'Bebe';
   const mention = `<a href="tg://user?id=${ctx.from.id}">${nombre}</a>`;
-  return `🔥﹡﹡﹡🔥
+  return `🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥
 
 💦 ${mention} 𝐁𝐢𝐞𝐧𝐯𝐞𝐧𝐢𝐝𝐨 𝐚 𝐥𝐚 𝐩𝐞𝐫𝐯𝐞𝐫𝐬𝐢𝐨‌𝐧 𝐭𝐨𝐭𝐚𝐥...
 
@@ -73,21 +73,21 @@ function getBienvenida(ctx){
 
 ¿𝗧𝗲 𝗮𝘁𝗿𝗲𝘃𝗲𝘀 𝗮 𝗲𝗻𝘁𝗿𝗮𝗿? 𝗘𝗹𝗶𝗴𝗲 𝗮𝗯𝗮𝗷𝗼 𝘆 𝗻𝗼 𝗵𝗮𝘆 𝘃𝘂𝗲𝗹𝘁𝗮 𝗮𝘁𝗿𝗮‌𝘀 👇
 
-🔥﹡﹡﹡🔥﹡﹡﹡🔥`;
+🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥`;
 }
 
 // PLANTILLA EXACTA QUE PEDISTE CON 6 FUEGOS
 function getCaption(c, descLimpia){
 const nombreLimpio = c.nombre.replace(/#g|#r|#p|#y/g,'').trim();
-const emojiMap = {'CANALES ADULTOS':'🔞','GRUPOS ADULTOS':'👥','VENTAS':'💸','PUBLICITARIOS':'📣','ENTRETENIMIENTO':'🍿','ARTE':'🎨','BOTS':'🤖'};
+const emojiMap = {'CANALES ADULTOS':'🔞','GRUPOS ADULTOS':'🔞','VENTAS':'💸','PUBLICITARIOS':'📣','ENTRETENIMIENTO':'🍿','ARTE':'🎨','BOTS':'🤖'};
 let emojiCat = '🔥';
 for(let k in emojiMap){ if(c.seccion.includes(k)) emojiCat=emojiMap[k]; }
-return `🔥﹡﹡﹡🔥
+return `🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥
 
-═══╡𝗖༶𝗔༶𝗧༶𝗘༶𝗚༶𝗢༶𝗥༶𝗜༶𝗔╞═══
+  ═══╡𝗖༶𝗔༶𝗧༶𝗘༶𝗚༶𝗢༶𝗥༶𝗜༶𝗔╞═══
 <blockquote>𝄆 ${emojiCat} ${c.seccion} 𝄇</blockquote>
 
-   ════╡𝗡༶𝗢༶𝗠༶𝗕༶𝗥༶𝗘╞════
+    ════╡𝗡༶𝗢༶𝗠༶𝗕༶𝗥༶𝗘╞════
 <blockquote>𝄆 ${nombreLimpio} 𝄇</blockquote>
 
 ╔══╡𝗗༶𝗘༶𝗦༶𝗖༶𝗥༶𝗜༶𝗣༶𝗖༶𝗜༶𝗢༶𝗡╞══╗
@@ -96,7 +96,7 @@ return `🔥﹡﹡﹡🔥
 
    ═══╡👁️ ${c.clicks||0} 𝐕𝐈𝐒𝐓𝐀𝐒 𝐓𝐎𝐓𝐀𝐋𝐄𝐒╞═══
 
-🔥﹡﹡﹡🔥﹡﹡﹡🔥`;
+🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥`;
 }
 
 function getMenuInline(){
