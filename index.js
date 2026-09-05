@@ -77,21 +77,20 @@ function textoSeguro(t){ if(!t) return "Chat"; t=parseColor(t); let b=0,r=""; fo
 async function mandarSeccion(sec, ctx){ await ctx.answerCbQuery().catch(()=>{}); const snap=await getDocs(query(collection(db,"chats"),where("seccion","==",sec))); if(snap.empty) return ctx.reply(`😈 Nada en ${sec}`,getMenuInline()); cacheChats={}; let btns=[]; snap.forEach(d=>{cacheChats[d.id]={id:d.id,...d.data()}; btns.push([Markup.button.callback(`${textoSeguro(d.data().nombre)} | ${d.data().clicks||0}`,`ver_${d.id}`)])}); btns.push([Markup.button.callback('⬅️ VOLVER AL MENU','volver_menu')]); await ctx.reply(`📁 ${sec} - Toca un nombre:`,Markup.inlineKeyboard(btns)); }
 
 function getCaption(c){
-  return `╔═══ 🔥🅢🅔🅧🅞🅜🅐🅝🅘🅐🔥 ═══╗
+  return `· · • • •⊰🔥𖤍⋆🅢🅔🅧🅞🅜🅐🅝🅘🅐⋆𖤍🔥⊱• • • · ·
 
-> 📁 𝘾𝘼𝙏𝙀𝙂𝙊𝙍𝙄𝘼:
-> ${c.seccion}
+<blockquote>═══◄•• 𝘾𝘼𝙏𝙀𝙂𝙊𝙍𝙄𝘼 ••►═══</blockquote>
+》 aqui la categoria con nombre y emoji 《
 
-> ✍🏻 𝙉𝙊𝙈𝘽𝙍𝙀 𝘿𝙀𝙇 𝘾𝙃𝘼𝙏 ✍🏻
-> 《 ${c.nombre} 》
+<blockquote>═══◄••𝙉𝙊𝙈𝘽𝙍𝙀 𝘿𝙀𝙇 𝘾𝙃𝘼𝙏••►═══</blockquote>
+》 aqui el nombre del chat 《
 
-> 📝 𝘿𝙀𝙎𝘾𝙍𝙄𝙋𝘾𝙄𝙊𝙉 📝
+<blockquote>═══◄•• 𝘿𝙀𝙎𝘾𝙍𝙄𝙋𝘾𝙄𝙊𝙉 ••►═══</blockquote>
+ (Un reglon vacio antes de la descripcion)
 
-${c.desc}
+<blockquote>📊 𝘼𝙇𝘾𝘼𝙉𝘾𝙀 𝙏𝙊𝙏𝘼𝙇⠅ 👁️ # 𝚅𝙸𝚂𝚃𝙰𝚂</blockquote>
 
-> 👁️ ${c.clicks||0} 𝗩𝗜𝗦𝗧𝗔𝗦
-
-╚═══ 🔥🅢🅔🅧🅞🅜🅐🅝🅘🅐🔥 ═══╝`;
+· · • • •⊰🔥𖤍⋆🅢🅔🅧🅞🅜🅐🅝🅘🅐⋆𖤍🔥⊱• • • · ·`;
 }
 
 async function mandarUnChat(id, ctx){ await ctx.answerCbQuery().catch(()=>{}); let c=cacheChats[id]; if(!c){ const s=await getDoc(doc(db,"chats",id)); if(!s.exists()) return ctx.reply('No existe'); c={id:s.id,...s.data()}; } const cap=getCaption(c); const kb=Markup.inlineKeyboard([[Markup.button.url('⚡ UNETE AQUI ⚡',c.link)],[Markup.button.url('🔘 + Botonera','https://t.me/Sexomanialinksbot'),Markup.button.url('📝 + Listas','https://t.me/SexomaniaListas_Bot')],[Markup.button.callback('⬅️ ATRAS',`sec_${c.seccion}`)]]); try{ if(c.foto?.startsWith('http')) await ctx.replyWithPhoto(c.foto,{caption:cap,...kb}); else if(c.foto?.startsWith('data:image')){ const buf=Buffer.from(c.foto.split(',')[1],'base64'); await ctx.replyWithPhoto({source:buf},{caption:cap,...kb}); } else await ctx.reply(cap,kb); }catch{ await ctx.reply(cap,kb); } }
