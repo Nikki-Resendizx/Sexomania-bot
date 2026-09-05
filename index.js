@@ -58,11 +58,11 @@ function getBienvenida(ctx){
 𝐸𝑙 𝑖𝑛𝑓𝑖𝑒𝑟𝑛𝑜 𝑑𝑜𝑛𝑑𝑒 𝑡𝑜𝑑𝑜𝑠 𝑞𝑢𝑖𝑒𝑟𝑒𝑛 𝑒𝑠𝑡𝑎𝑟 😈
    🔥 𝗘𝗻𝗰𝗼𝗻𝘁𝗿𝗮𝗿𝗮𝘀 𝗟𝗶𝗻𝗸𝘀 𝗱𝗲 🔥
 <blockquote>━━━━━━━━━━━━━━━━━━━━━━━━━
-🔞 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗣𝗢𝗥𝗧𝗘𝗦 𝗫𝗫𝗫
-👥 𝗚𝗥𝗨𝗣𝗢𝗦 𝗗𝗘 𝗔𝗣𝗢𝗥𝗧𝗘𝗦 𝗫𝗫𝗫
+🔞 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗫𝗫𝗫
+🔞 𝗚𝗥𝗨𝗣𝗢𝗦 𝗫𝗫𝗫
 💸 𝗚𝗥𝗨𝗣𝗢𝗦 𝗗𝗘 𝗩𝗘𝗡𝗧𝗔
-📣 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗣𝗨𝗕𝗟𝗜𝗖𝗜𝗧𝗔𝗥𝗜𝗢𝗦
-🍿 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗘𝗡𝗧𝗥𝗘𝗧𝗘𝗡𝗜𝗠𝗜𝗘𝗡𝗧𝗢
+📣 𝗣𝗨𝗕𝗟𝗜𝗖𝗜𝗧𝗔𝗥𝗜𝗢𝗦
+🍿 𝗘𝗡𝗧𝗥𝗘𝗧𝗘𝗡𝗜𝗠𝗜𝗘𝗡𝗧𝗢
 🎨 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗥𝗧𝗘
 🤖 𝗟𝗢𝗦 𝗠𝗘𝗝𝗢𝗥𝗘𝗦 𝗕𝗢𝗧𝗦
 ━━━━━━━━━━━━━━━━━━━━━━━━━</blockquote>
@@ -77,22 +77,24 @@ function getBienvenida(ctx){
 
 function getCaption(c, descLimpia){
 const nombreLimpio = c.nombre.replace(/#g|#r|#p|#y/g,'').trim();
-const emojiMap = {'CANALES ADULTOS':'🔞','GRUPOS ADULTOS':'👥','VENTAS':'💸','PUBLICITARIOS':'📣','ENTRETENIMIENTO':'🍿','ARTE':'🎨','BOTS':'🤖'};
+const emojiMap = {'𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗫𝗫𝗫':'🔞','𝗚𝗥𝗨𝗣𝗢𝗦 𝗫𝗫𝗫':'🔞','𝗚𝗥𝗨𝗣𝗢𝗦 𝗗𝗘 𝗩𝗘𝗡𝗧𝗔':'💸','𝗣𝗨𝗕𝗟𝗜𝗖𝗜𝗧𝗔𝗥𝗜𝗢𝗦':'📣','𝗘𝗡𝗧𝗥𝗘𝗧𝗘𝗡𝗜𝗠𝗜𝗘𝗡𝗧𝗢':'🍿','𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗥𝗧𝗘':'🎨','𝗟𝗢𝗦 𝗠𝗘𝗝𝗢𝗥𝗘𝗦 𝗕𝗢𝗧𝗦':'🤖'};
 let emojiCat = '🔥';
 for(let k in emojiMap){ if(c.seccion.includes(k)) emojiCat=emojiMap[k]; }
 return `🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥
 
-  ═══╡𝗖༶𝗔༶𝗧༶𝗘༶𝗚༶𝗢༶𝗥༶𝗜༶𝗔╞═══
-<blockquote>𝄆 ${emojiCat} ${c.seccion} 𝄇</blockquote>
+  ㅤ🗂️ 𝗖𝗔𝗧𝗘𝗚𝗢𝗥𝗜𝗔⠅${emojiCat} ${c.seccion} ${emojiCat}
+  ♡━━━━━━━━━━━━━━━━━━━━━━━━━━♡
 
-    ════╡𝗡༶𝗢༶𝗠༶𝗕༶𝗥༶𝗘╞════
-<blockquote>𝄆 ${nombreLimpio} 𝄇</blockquote>
+    🇳 🇴 🇲 🇧 🇷 🇪   🇩 🇪 🇱   🇨 🇭 🇦 🇹 
+<blockquote>${bold} ${nombreLimpio} ${textocentrado} ${bold}</blockquote> 𝄇</blockquote>
 
-╔══╡𝗗༶𝗘༶𝗦༶𝗖༶𝗥༶𝗜༶𝗣༶𝗖༶𝗜༶𝗢༶𝗡╞══╗
-<blockquote>${descLimpia || c.desc || "Sin descripcion"}</blockquote>
-╚═════════════════════.✰.═╝
+🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥
 
-   ═══╡👁️ ${c.clicks||0} 𝐕𝐈𝐒𝐓𝐀𝐒 𝐓𝐎𝐓𝐀𝐋𝐄𝐒╞═══
+ㅤㅤㅤ🇩 🇪 🇸 🇨 🇷 🇮 🇵 🇨 🇮 🇴 🇳 
+<blockquote>${bold} ${descLimpia || c.desc || "Sin descripcion"} ${bold}</blockquote>
+
+ㅤㅤ📊 𝘼𝙇𝘾𝘼𝙉𝘾𝙀 𝙏𝙊𝙏𝘼𝙇⠅ 👁️ ${c.clicks||0} 𝚅𝙸𝚂𝚃𝙰𝚂
+♡━━━━━━━━━━━━━━━━━━━━━━━━━━♡
 
 🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥`;
 }
