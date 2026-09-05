@@ -17,19 +17,38 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const BIENVENIDA = `💦 Bienvenido a la perversión total...
+const BIENVENIDA = `💦 𝐁𝐢𝐞𝐧𝐯𝐞𝐧𝐢𝐝𝐨 𝐚 𝐥𝐚 𝐩𝐞𝐫𝐯𝐞𝐫𝐬𝐢𝐨‌𝐧 𝐭𝐨𝐭𝐚𝐥...
 
-Esto es SEXOMANIA LINKS
-El infierno donde todos quieren estar 😈
+𝐸𝑠𝑡𝑜 𝑒𝑠 🔥🅢🅔🅧🅞🅜🅐🅝🅘🅐🔥 ᴸⁱⁿᵏˢ
+𝐸𝑙 𝑖𝑛𝑓𝑖𝑒𝑟𝑛𝑜 𝑑𝑜𝑛𝑑𝑒 𝑡𝑜𝑑𝑜𝑠 𝑞𝑢𝑖𝑒𝑟𝑒𝑛 𝑒𝑠𝑡𝑎𝑟 😈
 
-🔞 Canales XXX que Telegram te oculta
-👥 Grupos donde todo se vale
-💸 Las chicas más ricas vendiendo contenido
-📣 Hazte famoso en el mundo adulto
+📁 ❼ 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐈𝐀𝐒 𝐃𝐈𝐒𝐓𝐈𝐍𝐓𝐀𝐒
+   🔥 𝗘𝗻𝗰𝗼𝗻𝘁𝗿𝗮𝗿𝗮𝘀 𝗟𝗶𝗻𝗸𝘀 𝗱𝗲 🔥
 
-¿Te atreves a entrar? Elige abajo y no hay vuelta atrás 👇
+━━━━━━━━━━━━━━━━━━━━━━━━━
+🔞 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗣𝗢𝗥𝗧𝗘𝗦 𝗫𝗫 🔞
+━━━━━━━━━━━━━━━━━━━━━━━━━
+🔞 𝗚𝗥𝗨𝗣𝗢𝗦 𝗗𝗘 𝗔𝗣𝗢𝗥𝗧𝗘𝗦 𝗫𝗫𝗫 🔞
+━━━━━━━━━━━━━━━━━━━━━━━━━
+💸 𝗚𝗥𝗨𝗣𝗢𝗦 𝗗𝗘 𝗩𝗘𝗡𝗧𝗔 💸
+━━━━━━━━━━━━━━━━━━━━━━━━━
+📣 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗣𝗨𝗕𝗟𝗜𝗖𝗜𝗧𝗔𝗥𝗜𝗢𝗦 📣
+━━━━━━━━━━━━━━━━━━━━━━━━━
+🍿 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗘𝗡𝗧𝗥𝗘𝗧𝗘𝗡𝗜𝗠𝗜𝗘𝗡𝗧𝗢 🍿
+━━━━━━━━━━━━━━━━━━━━━━━━━
+🎨 𝗖𝗔𝗡𝗔𝗟𝗘𝗦 𝗗𝗘 𝗔𝗥𝗧𝗘 🎨
+━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 𝗟𝗢𝗦 𝗠𝗘𝗝𝗢𝗥𝗘𝗦 𝗕𝗢𝗧𝗦 🤖
+━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🌐 Entra a la App: https://sexomania-links.netlify.app`;
+🌟 𝑷𝒂𝒓𝒂 𝒑𝒂𝒓𝒕𝒊𝒄𝒊𝒑𝒂𝒓, 𝒔𝒐𝒍𝒐 𝒅𝒆𝒃𝒆𝒔 𝒂𝒈𝒓𝒆𝒈𝒂𝒓 𝒏𝒖𝒆𝒔𝒕𝒓𝒐𝒔 𝒃𝒐𝒕𝒔 𝒅𝒆 𝒅𝒊𝒇𝒖𝒔𝒊𝒐𝒏, 𝒑𝒖𝒆𝒅𝒆 𝒔𝒆𝒓 𝒆𝒍 𝒅𝒆 𝒃𝒐𝒕𝒐𝒏𝒆𝒔 𝒐 𝒆𝒍 𝒅𝒆 𝒍𝒊𝒔𝒕𝒂𝒔.
+
+⚡ 𝑺𝑰 𝑮𝑼𝑺𝑻𝑨𝑺 𝑷𝑼𝑬𝑫𝑬𝑺 𝑰𝑵𝑮𝑹𝑬𝑺𝑨𝑹 𝑳𝑶𝑺 𝑫𝑶𝑺 𝑩𝑶𝑻𝑺 𝒀 𝑯𝑨𝑪𝑰 𝑻𝑬𝑵𝑬𝑹 𝑴𝑨𝒀𝑶𝑹 𝑨𝑳𝑪𝑨𝑵𝑪𝑬 ⚡
+
+¿𝗧𝗲 𝗮𝘁𝗿𝗲𝘃𝗲𝘀 𝗮 𝗲𝗻𝘁𝗿𝗮𝗿? 𝗘𝗹𝗶𝗴𝗲 𝗮𝗯𝗮𝗷𝗼 𝘆 𝗻𝗼 𝗵𝗮𝘆 𝘃𝘂𝗲𝗹𝘁𝗮 𝗮𝘁𝗿𝗮‌𝘀 👇
+
+🌐 𝗣𝗔𝗡𝗘𝗟 𝗦𝗘𝗫𝗢𝗠𝗔𝗡𝗜𝗔 𝗟𝗜𝗡𝗞𝗦 🖥️
+http://t.me/SexomaniaLinkbot/Panel`;
 
 function getMenuInline(){
   return Markup.inlineKeyboard([
@@ -40,18 +59,19 @@ function getMenuInline(){
     [Markup.button.callback('🍿 ENTRETENIMIENTO', 'sec_ENTRETENIMIENTO')],
     [Markup.button.callback('🎨 ARTE', 'sec_ARTE')],
     [Markup.button.callback('🤖 BOTS', 'sec_BOTS')],
+    [Markup.button.url('🌐 APP OFICIAL', 'https://sexomania-links.netlify.app')]
   ]);
 }
 
 async function mandarSeccion(seccion, ctx){
   try{
-    await ctx.answerCbQuery();
+    await ctx.answerCbQuery().catch(()=>{});
     await ctx.reply(`🔍 Buscando en *${seccion}*...`, {parse_mode:'Markdown'});
     const q = query(collection(db, "chats"), where("seccion", "==", seccion));
     const snap = await getDocs(q);
     
     if(snap.empty){
-      return ctx.reply(`😈 Aún no hay nada en ${seccion}, agrégalo en la App`);
+      return ctx.reply(`😈 Aún no hay nada en ${seccion}\nAgrégalo desde la App`, getMenuInline());
     }
     
     let lista = [];
@@ -60,35 +80,44 @@ async function mandarSeccion(seccion, ctx){
 
     for(const c of lista){
       const caption = `📁 CATEGORIA: ${c.seccion}\n\n✍️ NOMBRE DEL CHAT ✍️\n${c.nombre}\n\n📝 DESCRIPCION 📝\n${c.desc}\n\n👁️ ${c.clicks||0} VISTAS\n\n⬇️ LINK DE ACCESO ⬇️\n${c.link}`;
-      await ctx.replyWithPhoto(c.foto, {
-        caption: caption,
-        ...Markup.inlineKeyboard([
-          [Markup.button.url('⚡ UNETE AQUI ⚡', c.link)],
-          [Markup.button.url('🔘 + Botonera', 'https://t.me/Sexomanialinksbot'), Markup.button.url('📝 + Listas', 'https://t.me/SexomaniaListas_Bot')]
-        ])
-      });
+      const botones = Markup.inlineKeyboard([
+        [Markup.button.url('⚡ UNETE AQUI ⚡', c.link)],
+        [Markup.button.url('🔘 + Botonera', 'https://t.me/Sexomanialinksbot'), Markup.button.url('📝 + Listas', 'https://t.me/SexomaniaListas_Bot')],
+        [Markup.button.callback('⬅️ VOLVER AL MENU', 'volver_menu')]
+      ]);
+
+      try {
+        if(c.foto && c.foto.startsWith('http')){
+          await ctx.replyWithPhoto(c.foto, { caption, ...botones });
+        } else {
+          await ctx.reply(caption, botones);
+        }
+      } catch(e){
+        console.log('Foto fallo:', e.message);
+        await ctx.reply(caption, botones);
+      }
+      await new Promise(r=>setTimeout(r, 400));
     }
+    await ctx.reply('¿Quieres ver otra categoría? 👇', getMenuInline());
   } catch(e){ console.log(e); ctx.reply('Error: '+e.message); }
 }
 
-bot.start((ctx) => {
-  ctx.reply(BIENVENIDA, getMenuInline());
-});
-
+bot.start((ctx) => ctx.reply(BIENVENIDA, getMenuInline()));
 bot.command('menu', (ctx) => ctx.reply('Elige una categoría jefa 👇', getMenuInline()));
 
-bot.on('callback_query', async (ctx) => {
-  const data = ctx.callbackQuery.data;
-  if(data.startsWith('sec_')){
-    const seccion = data.replace('sec_', '');
-    await mandarSeccion(seccion, ctx);
-  }
+bot.action('volver_menu', async (ctx) => {
+  await ctx.answerCbQuery().catch(()=>{});
+  await ctx.reply(BIENVENIDA, getMenuInline());
 });
 
-bot.launch().then(()=> console.log('BOT ON FIRESTORE'));
-console.log('Bot listo');
+bot.action(/^sec_/, async (ctx) => {
+  const seccion = ctx.match.input.replace('sec_', '');
+  await mandarSeccion(seccion, ctx);
+});
 
-// TRUCO PARA RENDER
+bot.launch().then(()=> console.log('BOT ON FIRESTORE FIXED'));
+console.log('Bot SEXOMANIA listo');
+
 const app2 = express();
-app2.get('/', (req,res) => res.send('Bot SEXOMANIA Firestore ON'));
+app2.get('/', (req,res) => res.send('Bot SEXOMANIA Firestore ON - FIXED'));
 app2.listen(process.env.PORT || 3000, () => console.log('Puerto OK'));
