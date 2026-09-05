@@ -22,7 +22,7 @@ const db = getDatabase();
 async function copiar(categoria, ctx){
   try {
     await ctx.reply(`🔍 Buscando en ${categoria}...`);
-    const snap = await get(ref(db, 'links'));
+    const snap = await get(ref(db, 'chats'));
     if(!snap.exists()) return ctx.reply('Firebase vacío');
     const lista = Object.values(snap.val()).filter(l => l.categoria?.toLowerCase() === categoria.toLowerCase());
     if(lista.length === 0) return ctx.reply(`No hay nada en ${categoria} aún, agrégalo en tu página`);
@@ -37,7 +37,7 @@ async function copiar(categoria, ctx){
 }
 
 bot.start((ctx) => {
-  ctx.reply('🔥 SEXOMANIA LINKS 🔥\nToca una categoría jefa:', Markup.keyboard([
+  ctx.reply('🔥 SEXOMANIA LINKS 🔥\nToca una categoría de las opciones que aparecen en los botones de abajo:', Markup.keyboard([
     ['🔞 CANALES', '👥 GRUPOS'],
     ['💸 VENTAS', '📣 PUBLICITARIOS'],
     ['🍿 ENTRETENIMIENTO', '🎨 ARTE'],
