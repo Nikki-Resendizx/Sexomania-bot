@@ -1,6 +1,6 @@
 const { Telegraf, Markup } = require('telegraf');
 const { initializeApp } = require('firebase/app');
-const { getFirestore, collection, getDocs, query, where, doc, getDoc, setDoc, updateDoc } = require('firebase/firestore');
+const { getFirestore, collection, getDocs, query, where, doc, getDoc, setDoc, updateDoc, increment } = require('firebase/firestore');
 const express = require('express');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
@@ -47,11 +47,10 @@ function extraerBotonesDeDescripcion(desc){
   return {botones, descripcionLimpia: descripcionLimpia.join('\n').trim()};
 }
 
-// BIENVENIDA EXACTA COMO LA PEDISTE CON 6 FUEGOS
 function getBienvenida(ctx){
   const nombre = ctx.from.first_name || 'Bebe';
   const mention = `<a href="tg://user?id=${ctx.from.id}">${nombre}</a>`;
-  return `🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥
+  return `🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥
 
 💦 ${mention} 𝐁𝐢𝐞𝐧𝐯𝐞𝐧𝐢𝐝𝐨 𝐚 𝐥𝐚 𝐩𝐞𝐫𝐯𝐞𝐫𝐬𝐢𝐨‌𝐧 𝐭𝐨𝐭𝐚𝐥...
 
@@ -73,16 +72,15 @@ function getBienvenida(ctx){
 
 ¿𝗧𝗲 𝗮𝘁𝗿𝗲𝘃𝗲𝘀 𝗮 𝗲𝗻𝘁𝗿𝗮𝗿? 𝗘𝗹𝗶𝗴𝗲 𝗮𝗯𝗮𝗷𝗼 𝘆 𝗻𝗼 𝗵𝗮𝘆 𝘃𝘂𝗲𝗹𝘁𝗮 𝗮𝘁𝗿𝗮‌𝘀 👇
 
-🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥`;
+🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥`;
 }
 
-// PLANTILLA EXACTA QUE PEDISTE CON 6 FUEGOS
 function getCaption(c, descLimpia){
 const nombreLimpio = c.nombre.replace(/#g|#r|#p|#y/g,'').trim();
-const emojiMap = {'CANALES ADULTOS':'🔞','GRUPOS ADULTOS':'🔞','VENTAS':'💸','PUBLICITARIOS':'📣','ENTRETENIMIENTO':'🍿','ARTE':'🎨','BOTS':'🤖'};
+const emojiMap = {'CANALES ADULTOS':'🔞','GRUPOS ADULTOS':'👥','VENTAS':'💸','PUBLICITARIOS':'📣','ENTRETENIMIENTO':'🍿','ARTE':'🎨','BOTS':'🤖'};
 let emojiCat = '🔥';
 for(let k in emojiMap){ if(c.seccion.includes(k)) emojiCat=emojiMap[k]; }
-return `🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥
+return `🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥
 
   ═══╡𝗖༶𝗔༶𝗧༶𝗘༶𝗚༶𝗢༶𝗥༶𝗜༶𝗔╞═══
 <blockquote>𝄆 ${emojiCat} ${c.seccion} 𝄇</blockquote>
@@ -96,7 +94,7 @@ return `🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥
 
    ═══╡👁️ ${c.clicks||0} 𝐕𝐈𝐒𝐓𝐀𝐒 𝐓𝐎𝐓𝐀𝐋𝐄𝐒╞═══
 
-🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥﹡﹡﹡🔥`;
+🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥﹡﹡🔥`;
 }
 
 function getMenuInline(){
@@ -123,19 +121,50 @@ async function mandarSeccion(sec,ctx){
   cacheChats={}; let btns=[]; snap.forEach(d=>{cacheChats[d.id]={id:d.id,...d.data()}; btns.push([Markup.button.callback(`${textoSeguro(d.data().nombre)} | ${d.data().clicks||0}`,`ver_${d.id}`)])});
   btns.push([Markup.button.callback('⬅️ VOLVER AL MENU','volver_menu')]); await ctx.reply(`📁 ${sec}:`,Markup.inlineKeyboard(btns));
 }
+
 async function mandarUnChat(id,ctx){
-  await ctx.answerCbQuery().catch(()=>{}); let c=cacheChats[id]; if(!c){ const s=await getDoc(doc(db,"chats",id)); if(!s.exists()) return ctx.reply('No existe'); c={id:s.id,...s.data()}; }
-  const {botones, descripcionLimpia}=extraerBotonesDeDescripcion(c.desc); const cap=getCaption(c,descripcionLimpia);
-  let kb=[]; for(let b of botones) kb.push([Markup.button.url(b.texto,b.url)]);
+  await ctx.answerCbQuery().catch(()=>{});
+  let c=cacheChats[id];
+  if(!c){ const s=await getDoc(doc(db,"chats",id)); if(!s.exists()) return ctx.reply('No existe'); c={id:s.id,...s.data()}; }
+
+  // CONTADOR DE VISTAS
+  try{
+    await updateDoc(doc(db,"chats",id), {clicks: increment(1)});
+    c.clicks = (c.clicks||0)+1;
+    if(cacheChats[id]) cacheChats[id].clicks = c.clicks;
+  }catch{}
+
+  const {botones, descripcionLimpia}=extraerBotonesDeDescripcion(c.desc);
+  const cap=getCaption(c,descripcionLimpia);
+
+  let kb=[];
+  for(let b of botones) kb.push([Markup.button.url(b.texto,b.url)]);
   if(kb.length===0) kb.push([Markup.button.url('⚡ UNETE AQUI ⚡',c.link)]);
   kb.push([Markup.button.url('🔘 + Botonera','https://t.me/Sexomanialinksbot'),Markup.button.url('📝 + Listas','https://t.me/SexomaniaListas_Bot')]);
+
   if(ctx.from.id==8695673050){
     kb.push([Markup.button.callback('🟢','setcolor_'+id+'_#g'),Markup.button.callback('🔴','setcolor_'+id+'_#r'),Markup.button.callback('🔵','setcolor_'+id+'_#p'),Markup.button.callback('🟡','setcolor_'+id+'_#y'),Markup.button.callback('⚪','setcolor_'+id+'_none')]);
-    kb.push([Markup.button.callback('🎨 EDITAR BOTONES','editbtns_'+id)]); kb.push([Markup.button.callback('🗑️ BORRAR BOTONES','clearbtns_'+id)]);
+    kb.push([Markup.button.callback('🎨 EDITAR BOTONES','editbtns_'+id)]);
+    kb.push([Markup.button.callback('🗑️ BORRAR BOTONES','clearbtns_'+id)]);
   }
-  kb.push([Markup.button.callback('⬅️ Volver','sec_'+c.seccion)]); const kbd=Markup.inlineKeyboard(kb);
-  try{ if(c.foto?.startsWith('http')) await ctx.replyWithPhoto(c.foto,{caption:cap,parse_mode:'HTML',...kbd}); else await ctx.reply(cap,{parse_mode:'HTML',...kbd}); }catch(e){ await ctx.reply(cap,{parse_mode:'HTML',...kbd}); }
+  kb.push([Markup.button.callback('⬅️ Volver','sec_'+c.seccion)]);
+  const kbd=Markup.inlineKeyboard(kb);
+
+  // --- AQUI ESTA LA IMAGEN QUE ME PEDISTE ---
+  try{
+    if(c.foto && c.foto.startsWith('http')){
+      await ctx.replyWithPhoto(c.foto,{caption:cap,parse_mode:'HTML',...kbd});
+    } else if(c.foto && c.foto.startsWith('data:image')){
+      const buf = Buffer.from(c.foto.split(',')[1],'base64');
+      await ctx.replyWithPhoto({source: buf},{caption:cap,parse_mode:'HTML',...kbd});
+    } else {
+      await ctx.reply(cap,{parse_mode:'HTML',...kbd});
+    }
+  }catch(e){
+    await ctx.reply(cap,{parse_mode:'HTML',...kbd});
+  }
 }
+
 bot.start((ctx)=>ctx.reply(getBienvenida(ctx),{parse_mode:'HTML',...getMenuInline()}));
 bot.command('menu',(ctx)=>ctx.reply(getBienvenida(ctx),{parse_mode:'HTML',...getMenuInline()}));
 bot.command('admin', async (ctx)=>{ if(ctx.from.id!=8695673050) return ctx.reply('⛔ No admin'); await ctx.reply(`⚙️ PANEL ADMIN`, Markup.inlineKeyboard([[Markup.button.callback('🎨 COLORES CATEGORIAS','admin_cats')],[Markup.button.callback('👁️ Ver menu','volver_menu')]])); });
@@ -150,5 +179,5 @@ bot.on('text', async (ctx,next)=>{ if(ctx.from.id!=8695673050) return next(); if
 bot.action('volver_menu', async (ctx)=>{ await ctx.answerCbQuery().catch(()=>{}); await ctx.reply(getBienvenida(ctx),{parse_mode:'HTML',...getMenuInline()}); });
 bot.action(/^sec_/, async (ctx)=>{ await mandarSeccion(ctx.callbackQuery.data.replace('sec_',''),ctx); });
 bot.action(/^ver_/, async (ctx)=>{ await mandarUnChat(ctx.callbackQuery.data.replace('ver_',''),ctx); });
-(async()=>{ await bot.telegram.deleteWebhook().catch(()=>{}); await bot.launch(); console.log('BOT FINAL COMPLETO ON'); })();
+(async()=>{ await bot.telegram.deleteWebhook().catch(()=>{}); await bot.launch(); console.log('BOT CON IMAGEN ON'); })();
 const app2=express(); app2.get('/',(r,s)=>s.send('ON')); app2.listen(process.env.PORT||3000);
