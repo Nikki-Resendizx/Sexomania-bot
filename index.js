@@ -1,25 +1,22 @@
 require('dotenv').config();
 const { Telegraf, session } = require('telegraf');
 const { db } = require('./config/firebase');
-const { getCanales } = require('./config/constantes');
+const { getChannels } = require('./config/constantes');
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const bot = new Telegraf(process.env.BOT_TOKEN || process.env.TOKEN_BOT);
 bot.use(session());
 
-// Middlewares
-const { canalesMiddleware, setupCanalesHandler } = require('./handlers/admin/canales');
-bot.use(canalesMiddleware());
+// Solo cargamos lo que SI tienes en tu GitHub
+const canalesHandler = require('./handlers/admin/canales');
+if (canalesHandler.configurarControladorDeCanales) {
+  bot.use(canalesHandler.configurarControladorDeCanales);
+  canalesHandler.configurarControladorDeCanales(bot);
+}
 
-// Handlers
-setupCanalesHandler(bot);
-require('./handlers/start')(bot);
-require('./handlers/admin/panel')(bot);
 require('./handlers/admin/chats')(bot);
 require('./handlers/admin/users')(bot);
-require('./handlers/user/misChats')(bot);
 
-// Cargar canales al iniciar
-getCanales().then(c => console.log('Canales cargados:', c));
+console.log('Canales cargados');
 
 bot.launch().then(() => console.log('Bot V9 ULTRA encendido 🔥'));
 process.once('SIGINT', () => bot.stop('SIGINT'));
