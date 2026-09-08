@@ -1,19 +1,24 @@
 const admin = require('firebase-admin');
 
-let serviceAccount;
-
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  // Si lo tienes como variable en Render
-  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-} else {
-  // Si lo tienes como archivo
-  serviceAccount = require('./serviceAccountKey.json');
-}
-
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+  // En Render usamos variable de entorno
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+  } else {
+    // Si estás en local con archivo
+    try {
+      const serviceAccount = require('./serviceAccountKey.json');
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+    } catch (e) {
+      console.log('❌ No se encontró serviceAccountKey.json ni variable FIREBASE_SERVICE_ACCOUNT');
+      console.log('Configúrala en Render > Environment');
+    }
+  }
 }
 
 const db = admin.firestore();
