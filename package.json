@@ -1,7 +1,7 @@
 {
   "name": "sexomania-bot",
-  "version": "1.0.0",
-  "description": "Bot Sexomania Links - Botonera y Listas",
+  "version": "2.0.0",
+  "description": "Bot Sexomania Links - Categorias, Mis Grupos y Botonera",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -9,6 +9,7 @@
   "dependencies": {
     "telegraf": "^4.15.0",
     "firebase": "^10.12.2",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5"
   }
 }
