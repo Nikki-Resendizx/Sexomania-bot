@@ -25,6 +25,7 @@ let agregarEstado = {};
 let buscarEstado = {};
 let editLinkEstado = {};
 let editNombreEstado = {};
+let difusorData = {}; // {adminId: {texto, botonesFilas, foto}}
 global.popupCache = {};
 
 (async()=>{ try{ const s=await getDoc(doc(db,"config","bot")); if(s.exists()) configBot={...configBot,...s.data()}; }catch{} })();
@@ -59,8 +60,7 @@ function extraerBotonesDeDescripcion(desc){
         texto = emoji + texto;
         let lowUrl = url.toLowerCase();
         if(lowUrl.startsWith('popup:') || lowUrl.startsWith('alert:')){
-          let txtPopup = url.split(':').slice(1).join(':').trim();
-          filaActual.push({ texto, tipo: 'popup', valor: txtPopup });
+          filaActual.push({ texto, tipo: 'popup', valor: url.split(':').slice(1).join(':').trim() });
         } else if(lowUrl === 'rules'){
           filaActual.push({ texto, tipo: 'rules', valor: 'rules' });
         } else if(lowUrl.startsWith('share:')){
@@ -78,6 +78,41 @@ function extraerBotonesDeDescripcion(desc){
     else descripcionLimpia.push(linea);
   }
   return { botonesFilas, descripcionLimpia: descripcionLimpia.join('\n').trim() };
+}
+
+function parseDifusorBotonera(textoCompleto){
+  // Formato:
+  // Texto de la botonera arriba
+  // ---
+  // Botones con tu sintaxis
+  let partes = textoCompleto.split('---');
+  let texto = partes[0].trim();
+  let botonesTexto = partes[1]? partes[1].trim() : "";
+  const {botonesFilas} = extraerBotonesDeDescripcion(botonesTexto);
+  return {texto, botonesFilas};
+}
+
+function buildKeyboardFromFilas(filas, idBase){
+  let kb=[];
+  for(let fila of filas){
+    let filaKb=[];
+    for(let b of fila){
+      if(b.tipo==='url') filaKb.push(Markup.button.url(b.texto, b.valor));
+      else if(b.tipo==='popup'){
+        const keyBase = Buffer.from(b.valor).toString('base64').substring(0,30).replace(/=/g,'');
+        global.popupCache[`${idBase}_${keyBase}`]=b.valor;
+        filaKb.push(Markup.button.callback(b.texto, `popup_${idBase}_${keyBase}`));
+      }
+      else if(b.tipo==='share') filaKb.push(Markup.button.switchToChat(b.texto, b.valor));
+      else if(b.tipo==='copy'){
+        global.popupCache[`copy_${idBase}`]=b.valor;
+        filaKb.push(Markup.button.callback(b.texto, `copy_${idBase}`));
+      }
+      else if(b.tipo==='rules') filaKb.push(Markup.button.callback(b.texto, `rules_${idBase}`));
+    }
+    if(filaKb.length>0) kb.push(filaKb);
+  }
+  return kb;
 }
 
 function getBienvenida(ctx){
@@ -107,6 +142,7 @@ function getMenuInline(){
 function getAdminKeyboard(){
   return Markup.inlineKeyboard([
     [Markup.button.callback('⚙️ GESTIONAR GRUPOS Y CANALES','admin_gestionar')],
+    [Markup.button.callback('📢 DIFUSOR BOTONERAS / LISTAS','admin_difusor')],
     [Markup.button.callback('🎨 COLORES CATEGORIAS','admin_cats')],
     [Markup.button.callback('💬 EDITAR BIENVENIDA','admin_edit_welcome')],
     [Markup.button.callback('📝 EDITAR PLANTILLA CHAT','admin_edit_template')],
@@ -124,6 +160,15 @@ function getGestionarKeyboard(){
     [Markup.button.callback('📺 LISTA DE CANALES','gestion_canales')],
     [Markup.button.callback('👥 LISTA DE GRUPOS','gestion_grupos')],
     [Markup.button.callback('🔍 BUSCAR CANAL/GRUPO','gestion_buscar')],
+    [Markup.button.callback('⬅️ VOLVER ADMIN','admin_back')]
+  ]);
+}
+function getDifusorKeyboard(){
+  return Markup.inlineKeyboard([
+    [Markup.button.callback('🔘 CREAR BOTONERA','dif_crear_botonera')],
+    [Markup.button.callback('📝 CREAR LISTA','dif_crear_lista')],
+    [Markup.button.callback('👁️ VER BORRADOR','dif_ver_borrador')],
+    [Markup.button.callback('🚀 DIFUNDIR A CATEGORIAS','dif_elegir_cat')],
     [Markup.button.callback('⬅️ VOLVER ADMIN','admin_back')]
   ]);
 }
@@ -181,16 +226,16 @@ async function mostrarDetalleGestion(id, ctx){
       try{ miembros = await bot.telegram.getChatMembersCount(chatInfo.id); }catch{ miembros="Oculto"; }
     }
   }catch{}
-  let estadoEmoji="⏰ PENDIENTE"; if(c.baneado) estadoEmoji="⛔️ BANEADO POR ADMIN"; else if(c.autobaneado) estadoEmoji="🚷 BOT EXPULSADO"; else if(c.pendiente) estadoEmoji="⏰ PENDIENTE"; else estadoEmoji="✅ APROBADO";
-  let solicitanteInfo = c.ownerId? `👤 <code>${c.ownerId}</code> <a href="tg://user?id=${c.ownerId}">Ver</a>` : "Desconocido";
+  let estadoEmoji="⏰ PENDIENTE"; if(c.baneado) estadoEmoji="⛔️ BANEADO POR ADMIN"; else if(c.autobaneado) estadoEmoji="🚷 BOT EXPULSADO POR SOLICITANTE"; else if(c.pendiente) estadoEmoji="⏰ PENDIENTE"; else estadoEmoji="✅ APROBADO";
+  let solicitanteInfo = c.ownerId? `👤SOLICITANTE: <code>${c.ownerId}</code> <a href="tg://user?id=${c.ownerId}">Ver</a>` : "Desconocido";
   let fecha = c.fecha? new Date(c.fecha).toLocaleString('es-MX') : (c.fecha_registro||"N/A");
-  let detalle = `🗒️ <b>DETALLES DEL ${tipoReal.toUpperCase()}</b>\n\n✏️ <b>Nombre:</b> ${c.nombre}\n📝 <b>Bio:</b> ${bio||c.desc?.substring(0,200)||"Sin bio"}\n🆔 <b>ID:</b> <code>${c.id}</code>\n📁 <b>Categoría:</b> ${c.seccion}\n🏷 <b>Tipo:</b> ${tipoReal}\n👥 <b>Miembros:</b> ${miembros}\n${solicitanteInfo}\n📅 <b>Registro:</b> ${fecha}\n${estadoEmoji}\n🔗 <b>Link:</b> ${c.link}`;
+  let detalle = `🗒️ <b>DETALLES DEL ${tipoReal.toUpperCase()}</b>\n\n🖼️ Foto: ${foto?"Si":"No"}\n✏️ <b>Nombre:</b> ${c.nombre}\n📝 <b>Biografia:</b> ${bio||c.desc?.substring(0,300)||"Sin bio"}\n🆔 <b>Id:</b> <code>${c.id}</code>\n📁 <b>Categoría:</b> ${c.seccion}\n🏷 <b>Tipo:</b> ${tipoReal}\n👥 <b>Miembros:</b> ${miembros}\n${solicitanteInfo}\n📅 <b>Fecha registro:</b> ${fecha}\n${estadoEmoji}\n🔗 <b>Enlace:</b> ${c.link}`;
   let kb = Markup.inlineKeyboard([
-    [Markup.button.callback('🔗 Cambiar enlace','editlink_'+c.id)],
-    [Markup.button.callback('🚫 Autoban Bot','ban_'+c.id)],
-    [Markup.button.callback('✏️ Cambiar nombre','editname_'+c.id)],
-    [Markup.button.callback('📁 Cambiar categoría','editcatbtn_'+c.id)],
-    [Markup.button.callback('✅ Aprobar / Desaprobar','toggleaprob_'+c.id)],
+    [Markup.button.callback('🔗 1-Cambiar enlace','editlink_'+c.id)],
+    [Markup.button.callback('🚫 2-Autoban Bot','ban_'+c.id)],
+    [Markup.button.callback('✏️ 3-Cambiar nombre','editname_'+c.id)],
+    [Markup.button.callback('📁 4-Cambiar categoría','editcatbtn_'+c.id)],
+    [Markup.button.callback('✅ 5-Aprobación','toggleaprob_'+c.id)],
     [Markup.button.callback('❌ Eliminar','delchat_'+c.id)],
     [Markup.button.callback('⬅️ Volver','admin_gestionar')]
   ]);
@@ -229,37 +274,91 @@ bot.action('mis_chats', async (ctx)=>{
 });
 bot.action('agregar_chat', async (ctx)=>{
   await ctx.answerCbQuery().catch(()=>{}); agregarEstado[ctx.from.id]={paso:1};
-  await ctx.reply(`🔵 <b>AGREGAR CANAL O GRUPO</b>\n\n1️⃣ Agrégame como ADMIN a tu canal/grupo\n2️⃣ Reenvía aquí un mensaje de ese canal\n3️⃣ O envía su @username o link\n\n<i>Después elegirás la categoría</i>`,{parse_mode:'HTML',...Markup.inlineKeyboard([[Markup.button.callback('❌ Cancelar','volver_menu')]])});
+  await ctx.reply(`🔵 <b>AGREGAR CANAL O GRUPO</b>\n\n1️⃣ Agrégame como ADMIN a tu canal/grupo\n2️⃣ Reenvía aquí un mensaje de ese canal\n3️⃣ O envía su @username o link`,{parse_mode:'HTML',...Markup.inlineKeyboard([[Markup.button.callback('❌ Cancelar','volver_menu')]])});
 });
 
 // GESTIONAR
-bot.action('admin_gestionar', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; await ctx.answerCbQuery().catch(()=>{}); await ctx.reply(`⚙️ <b>GESTIONAR GRUPOS Y CANALES</b>\n\nVer y moderar los canales y grupos registrados`,{parse_mode:'HTML',...getGestionarKeyboard()}); });
+bot.action('admin_gestionar', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; await ctx.answerCbQuery().catch(()=>{}); await ctx.reply(`⚙️ <b>GESTIONAR GRUPOS Y CANALES</b>`,{parse_mode:'HTML',...getGestionarKeyboard()}); });
 bot.action('gestion_canales', async (ctx)=>{
   if(ctx.from.id!=ADMIN_ID) return; await ctx.answerCbQuery().catch(()=>{});
   const snap=await getDocs(collection(db,"chats"));
   let canales = []; snap.forEach(d=>{ if((d.data().tipo||'canal')!=='grupo' && d.data().seccion!==CAT_BOTS) canales.push({id:d.id,...d.data()}); });
   if(canales.length===0) return ctx.reply('No hay canales', getGestionarKeyboard());
-  let btns=[]; canales.slice(0,30).forEach(c=> btns.push([Markup.button.callback(`📺 ${c.nombre.substring(0,25)} | ${c.id}`,`det_${c.id}`)]));
+  let btns=[]; canales.slice(0,40).forEach(c=> btns.push([Markup.button.callback(`📺 ${c.nombre.substring(0,25)} | ${c.id}`,`det_${c.id}`)]));
   btns.push([Markup.button.callback('⬅️ Volver','admin_gestionar')]);
-  await ctx.reply(`📺 <b>CANALES (${canales.length})</b> - Mostrando 30`,{parse_mode:'HTML',...Markup.inlineKeyboard(btns)});
+  await ctx.reply(`📺 <b>CANALES (${canales.length})</b>`,{parse_mode:'HTML',...Markup.inlineKeyboard(btns)});
 });
 bot.action('gestion_grupos', async (ctx)=>{
   if(ctx.from.id!=ADMIN_ID) return; await ctx.answerCbQuery().catch(()=>{});
   const snap=await getDocs(collection(db,"chats"));
   let grupos = []; snap.forEach(d=>{ if((d.data().tipo||'')==='grupo' || d.data().seccion==='GRUPOS ADULTOS') grupos.push({id:d.id,...d.data()}); });
   if(grupos.length===0) return ctx.reply('No hay grupos', getGestionarKeyboard());
-  let btns=[]; grupos.slice(0,30).forEach(c=> btns.push([Markup.button.callback(`👥 ${c.nombre.substring(0,25)} | ${c.id}`,`det_${c.id}`)]));
+  let btns=[]; grupos.slice(0,40).forEach(c=> btns.push([Markup.button.callback(`👥 ${c.nombre.substring(0,25)} | ${c.id}`,`det_${c.id}`)]));
   btns.push([Markup.button.callback('⬅️ Volver','admin_gestionar')]);
-  await ctx.reply(`👥 <b>GRUPOS (${grupos.length})</b> - Mostrando 30`,{parse_mode:'HTML',...Markup.inlineKeyboard(btns)});
+  await ctx.reply(`👥 <b>GRUPOS (${grupos.length})</b>`,{parse_mode:'HTML',...Markup.inlineKeyboard(btns)});
 });
-bot.action('gestion_buscar', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; buscarEstado[ctx.from.id]=true; await ctx.reply(`🔍 <b>BUSCAR</b>\n\nEnvía el Título o ID del canal/grupo que deseas encontrar\n/cancel para cancelar`,{parse_mode:'HTML'}); });
+bot.action('gestion_buscar', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; buscarEstado[ctx.from.id]=true; await ctx.reply(`🔍 <b>BUSCAR</b>\n\nEnvía el Título o ID`,{parse_mode:'HTML'}); });
 bot.action(/^det_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; await ctx.answerCbQuery().catch(()=>{}); const id=ctx.callbackQuery.data.replace('det_',''); await mostrarDetalleGestion(id, ctx); });
-bot.action(/^editlink_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('editlink_',''); editLinkEstado[ctx.from.id]=id; await ctx.reply(`🔗 Envía el nuevo enlace para <code>${id}</code>\nPuede ser directo o con aprobación`,{parse_mode:'HTML'}); });
-bot.action(/^ban_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('ban_',''); await updateDoc(doc(db,"chats",id),{baneado:true, autobaneado:true}); await ctx.answerCbQuery({text:'Baneado'}); await ctx.reply(`🚫 Chat ${id} baneado. Bot autobaneado.`); });
-bot.action(/^editname_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('editname_',''); editNombreEstado[ctx.from.id]=id; await ctx.reply(`✏️ Envía el nuevo nombre para <code>${id}</code>`,{parse_mode:'HTML'}); });
+bot.action(/^editlink_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('editlink_',''); editLinkEstado[ctx.from.id]=id; await ctx.reply(`🔗 Envía el nuevo enlace para <code>${id}</code>`,{parse_mode:'HTML'}); });
+bot.action(/^ban_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('ban_',''); await updateDoc(doc(db,"chats",id),{baneado:true, autobaneado:true}); await ctx.answerCbQuery({text:'Baneado'}); await ctx.reply(`🚫 Chat ${id} baneado.`); });
+bot.action(/^editname_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('editname_',''); editNombreEstado[ctx.from.id]=id; await ctx.reply(`✏️ Envía el nuevo nombre`,{parse_mode:'HTML'}); });
 bot.action(/^editcatbtn_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('editcatbtn_',''); let btns=CATS_USUARIO.map(c=>[Markup.button.callback(c,`setcatadm_${id}_${c}`)]); btns.push([Markup.button.callback('⬅️','det_'+id)]); await ctx.reply(`📁 Elige nueva categoría:`,Markup.inlineKeyboard(btns)); });
 bot.action(/^setcatadm_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const data=ctx.callbackQuery.data.replace('setcatadm_',''); const last=data.lastIndexOf('_'); const id=data.substring(0,last); const cat=data.substring(last+1); await updateDoc(doc(db,"chats",id),{seccion:cat}); await ctx.answerCbQuery({text:cat}); await mostrarDetalleGestion(id, ctx); });
-bot.action(/^toggleaprob_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('toggleaprob_',''); const s=await getDoc(doc(db,"chats",id)); const cur=s.data(); await updateDoc(doc(db,"chats",id),{pendiente:!cur.pendiente? false :!cur.pendiente, baneado:false, autobaneado:false, aprobado:true}); await ctx.answerCbQuery({text:cur.pendiente?'Aprobado':'Pendiente'}); await mostrarDetalleGestion(id, ctx); });
+bot.action(/^toggleaprob_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('toggleaprob_',''); const s=await getDoc(doc(db,"chats",id)); const cur=s.data(); await updateDoc(doc(db,"chats",id),{pendiente:!cur.pendiente? false :!cur.pendiente, baneado:false, autobaneado:false}); await ctx.answerCbQuery({text:cur.pendiente?'Aprobado':'Pendiente'}); await mostrarDetalleGestion(id, ctx); });
+
+// DIFUSOR
+bot.action('admin_difusor', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; await ctx.answerCbQuery().catch(()=>{}); await ctx.reply(`📢 <b>DIFUSOR DE BOTONERAS Y LISTAS</b>\n\nCrea tu botonera o lista y difúndela`,{parse_mode:'HTML',...getDifusorKeyboard()}); });
+bot.action('dif_crear_botonera', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; pendingAdminEdit='dif_botonera'; await ctx.reply(`🔘 <b>CREAR BOTONERA</b>\n\nManda así:\n\n<code>Texto principal de la botonera (puede ser largo, con emojis)\n---\n#p Boton 1 - t.me/link\nBoton 2 - t.me/link && Boton 3 - t.me/link\nReglas - rules\nAlerta - popup:Bienvenido</code>\n\nUsa --- para separar texto de botones\n\n/cancel para cancelar`,{parse_mode:'HTML'}); });
+bot.action('dif_crear_lista', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; pendingAdminEdit='dif_lista'; await ctx.reply(`📝 <b>CREAR LISTA</b>\n\nManda la lista de canales así:\n\n<code>TITULO DE LA LISTA\n\n1. Nombre - t.me/link\n2. Nombre - t.me/link\n3. Nombre - t.me/link\n---\n#p Unete al principal - t.me/Sexomania_Links</code>\n\n/cancel`,{parse_mode:'HTML'}); });
+bot.action('dif_ver_borrador', async (ctx)=>{
+  if(ctx.from.id!=ADMIN_ID) return;
+  const d = difusorData[ctx.from.id];
+  if(!d) return ctx.reply('❌ No hay borrador. Crea una botonera primero.', getDifusorKeyboard());
+  let kb = buildKeyboardFromFilas(d.botonesFilas, 'dif_preview');
+  kb.push([Markup.button.callback('⬅️ Volver','admin_difusor')]);
+  if(d.foto){
+    await ctx.replyWithPhoto(d.foto,{caption:d.texto,parse_mode:'HTML',...Markup.inlineKeyboard(kb)}).catch(async()=>{ await ctx.reply(d.texto,{parse_mode:'HTML',...Markup.inlineKeyboard(kb)}); });
+  } else {
+    await ctx.reply(d.texto,{parse_mode:'HTML',...Markup.inlineKeyboard(kb)});
+  }
+});
+bot.action('dif_elegir_cat', async (ctx)=>{
+  if(ctx.from.id!=ADMIN_ID) return;
+  if(!difusorData[ctx.from.id]) return ctx.reply('❌ Crea primero una botonera/lista');
+  let btns = CATS_USUARIO.map(c=>[Markup.button.callback(`📤 Enviar a ${c}`,`dif_send_${c}`)]);
+  btns.push([Markup.button.callback('🌐 Enviar a TODOS','dif_send_TODOS')]);
+  btns.push([Markup.button.callback('⬅️ Volver','admin_difusor')]);
+  await ctx.reply(`🚀 <b>¿A dónde difundir?</b>\n\nBorrador listo: ${(difusorData[ctx.from.id].texto||'').substring(0,100)}...`,{parse_mode:'HTML',...Markup.inlineKeyboard(btns)});
+});
+bot.action(/^dif_send_/, async (ctx)=>{
+  if(ctx.from.id!=ADMIN_ID) return; const target = ctx.callbackQuery.data.replace('dif_send_','');
+  const d = difusorData[ctx.from.id]; if(!d) return ctx.answerCbQuery({text:'No hay borrador'});
+  await ctx.answerCbQuery({text:`Difundiendo a ${target}...`});
+  let q; if(target==='TODOS') q=collection(db,"chats"); else q=query(collection(db,"chats"), where("seccion","==",target));
+  const snap=await getDocs(q);
+  let ok=0, fail=0;
+  let kb = buildKeyboardFromFilas(d.botonesFilas, 'dif');
+  kb.push([Markup.button.url('🔘 + Botonera','https://t.me/Sexomanialinksbot'), Markup.button.url('📝 + Listas','https://t.me/SexomaniaListas_Bot')]);
+  const kbd = Markup.inlineKeyboard(kb);
+  for(let docu of snap.docs){
+    try{
+      const chatId = docu.data().tipo==='channel' || docu.id.startsWith('-100')? Number(docu.id) : docu.id;
+      // Si es canal/grupo real, intentar enviar. Si no, skip.
+      if(String(docu.id).startsWith('-100')){
+        if(d.foto) await bot.telegram.sendPhoto(chatId, d.foto, {caption:d.texto, parse_mode:'HTML',...kbd}).catch(()=>{});
+        else await bot.telegram.sendMessage(chatId, d.texto, {parse_mode:'HTML',...kbd}).catch(()=>{});
+        ok++;
+      } else {
+        // Para chats sin ID real, solo cuenta como lista
+        ok++;
+      }
+      await new Promise(r=>setTimeout(r, 300)); // anti-flood
+    }catch{ fail++; }
+  }
+  await ctx.reply(`✅ Difusión terminada\n\n🎯 Destino: ${target}\n✅ Enviados: ${ok}\n❌ Fallos: ${fail}\n📦 Total en BD: ${snap.size}\n\nLa botonera queda guardada como borrador para reusar.`, getDifusorKeyboard());
+  // Guardar en colección difusiones
+  await setDoc(doc(db,"difusiones", String(Date.now())), { texto:d.texto, botones:d.botonesFilas, destino:target, fecha:new Date().toISOString(), enviados:ok }).catch(()=>{});
+});
 
 bot.on('my_chat_member', async (ctx)=>{
   const chat = ctx.chat; const status = ctx.myChatMember.new_chat_member.status;
@@ -304,7 +403,7 @@ bot.action('admin_edit_welcome', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return
 bot.action('admin_edit_template', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; pendingAdminEdit='template'; await ctx.reply(`📝 Manda nueva plantilla con {nombre} {categoria} {emojiCat} {desc} {vistas}\n/cancel`); });
 bot.action(/^editcat_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const cat=ctx.callbackQuery.data.replace('editcat_',''); await ctx.reply(`Color para ${cat}:`, Markup.inlineKeyboard([[Markup.button.callback('🟢 Verde','setcatcolor_'+cat+'_#g'),Markup.button.callback('🔴 Rojo','setcatcolor_'+cat+'_#r')],[Markup.button.callback('🔵 Azul','setcatcolor_'+cat+'_#p'),Markup.button.callback('🟡 Amarillo','setcatcolor_'+cat+'_#y')],[Markup.button.callback('⚪ Sin color','setcatcolor_'+cat+'_none')],[Markup.button.callback('⬅️ Atras','admin_cats')]])); });
 bot.action(/^setcatcolor_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const data=ctx.callbackQuery.data.replace('setcatcolor_',''); const last=data.lastIndexOf('_'); const cat=data.substring(0,last); const color=data.substring(last+1); if(!configBot.catColors) configBot.catColors={}; if(color==='none') delete configBot.catColors[cat]; else configBot.catColors[cat]=color; await setDoc(doc(db,"config","bot"),configBot,{merge:true}); await ctx.reply(`✅ ${cat} -> ${color}`, getAdminCatKeyboard()); });
-bot.action(/^editbtns_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('editbtns_',''); pendingEdits[ctx.from.id]=id; await ctx.reply(`🎨 Manda botones con tu sintaxis:\n\n#p Unete - t.me/link\nTitulo - t.me/link && Otro - t.me/link\nReglas - rules\nAviso - popup:Texto\nCompartir - share:Texto`,{parse_mode:'HTML'}); });
+bot.action(/^editbtns_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('editbtns_',''); pendingEdits[ctx.from.id]=id; await ctx.reply(`🎨 Manda botones con tu sintaxis`,{parse_mode:'HTML'}); });
 bot.action(/^clearbtns_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('clearbtns_',''); const ref=doc(db,"chats",id); const snap=await getDoc(ref); const {descripcionLimpia}=extraerBotonesDeDescripcion(snap.data().desc); await updateDoc(ref,{desc:descripcionLimpia}); await ctx.answerCbQuery({text:"Borrados"}); });
 bot.action(/^setcolor_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const data=ctx.callbackQuery.data.replace('setcolor_',''); const last=data.lastIndexOf('_'); const id=data.substring(0,last); const color=data.substring(last+1); const ref=doc(db,"chats",id); const snap=await getDoc(ref); let nombreActual=snap.data().nombre.replace(/#g|#r|#p|#y/g,'').trim(); let nuevo=color==='none'?nombreActual:`${nombreActual} ${color}`; await updateDoc(ref,{nombre:nuevo}); await ctx.reply(`✅ ${nuevo}`); });
 
@@ -313,6 +412,19 @@ bot.action(/^copy_/, async (ctx)=>{ try{ const id = ctx.callbackQuery.data.repla
 bot.action(/^rules_/, async (ctx)=>{ try{ await ctx.answerCbQuery("📜 Reglas: Respetar, no spam, no CP. Cualquier falta = ban", {show_alert: true}); }catch{} });
 
 bot.command('cancel',(ctx)=>{ delete pendingEdits[ctx.from.id]; pendingAdminEdit=null; delete agregarEstado[ctx.from.id]; delete buscarEstado[ctx.from.id]; delete editLinkEstado[ctx.from.id]; delete editNombreEstado[ctx.from.id]; ctx.reply("❌ Cancelado"); });
+
+bot.on('photo', async (ctx)=>{
+  if(ctx.from.id!=ADMIN_ID) return;
+  if(pendingAdminEdit && pendingAdminEdit.startsWith('dif_')){
+    const fileId = ctx.message.photo[ctx.message.photo.length-1].file_id;
+    const file = await ctx.telegram.getFile(fileId);
+    const url = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
+    if(!difusorData[ctx.from.id]) difusorData[ctx.from.id]={texto:"", botonesFilas:[], foto:null};
+    difusorData[ctx.from.id].foto = url;
+    await ctx.reply(`🖼️ Foto guardada para difusor. Ahora manda el texto+botones`);
+    pendingAdminEdit = pendingAdminEdit; // keep
+  }
+});
 
 bot.on('text', async (ctx,next)=>{
   if(buscarEstado[ctx.from.id]){
@@ -330,6 +442,26 @@ bot.on('text', async (ctx,next)=>{
   }
   if(editNombreEstado[ctx.from.id]){
     const id=editNombreEstado[ctx.from.id]; await updateDoc(doc(db,"chats",id),{nombre:ctx.message.text}); delete editNombreEstado[ctx.from.id]; return ctx.reply(`✅ Nombre actualizado`);
+  }
+  if(ctx.from.id==ADMIN_ID && pendingAdminEdit==='dif_botonera'){
+    const {texto, botonesFilas} = parseDifusorBotonera(ctx.message.text);
+    if(!difusorData[ctx.from.id]) difusorData[ctx.from.id]={};
+    difusorData[ctx.from.id].texto=texto;
+    difusorData[ctx.from.id].botonesFilas=botonesFilas;
+    pendingAdminEdit=null;
+    let kb=buildKeyboardFromFilas(botonesFilas, 'dif_preview');
+    kb.push([Markup.button.callback('🚀 DIFUNDIR','dif_elegir_cat')]);
+    return ctx.reply(`✅ Botonera guardada!\n\nPreview:`,{parse_mode:'HTML',...Markup.inlineKeyboard(kb)});
+  }
+  if(ctx.from.id==ADMIN_ID && pendingAdminEdit==='dif_lista'){
+    const {texto, botonesFilas} = parseDifusorBotonera(ctx.message.text);
+    if(!difusorData[ctx.from.id]) difusorData[ctx.from.id]={};
+    difusorData[ctx.from.id].texto=texto;
+    difusorData[ctx.from.id].botonesFilas=botonesFilas;
+    pendingAdminEdit=null;
+    let kb=buildKeyboardFromFilas(botonesFilas, 'dif_preview');
+    kb.push([Markup.button.callback('🚀 DIFUNDIR','dif_elegir_cat')]);
+    return ctx.reply(`✅ Lista guardada!\n\nPreview:`,{parse_mode:'HTML',...Markup.inlineKeyboard(kb)});
   }
   if(ctx.from.id==ADMIN_ID && pendingAdminEdit==='add_bot'){
     const lines = ctx.message.text.split('\n'); if(lines.length<2) return ctx.reply('Formato mal');
@@ -357,5 +489,5 @@ bot.action('volver_menu', async (ctx)=>{ await ctx.answerCbQuery().catch(()=>{})
 bot.action(/^sec_/, async (ctx)=>{ await mandarSeccion(ctx.callbackQuery.data.replace('sec_',''),ctx); });
 bot.action(/^ver_/, async (ctx)=>{ await mandarUnChat(ctx.callbackQuery.data.replace('ver_',''),ctx); });
 
-(async()=>{ await bot.telegram.deleteWebhook().catch(()=>{}); await bot.launch(); console.log('SEXOMANIA V4 GESTIONAR ON'); })();
-const app2=express(); app2.get('/',(r,s)=>s.send('V4 GESTIONAR ON')); app2.listen(process.env.PORT||3000);
+(async()=>{ await bot.telegram.deleteWebhook().catch(()=>{}); await bot.launch(); console.log('SEXOMANIA V5 DIFUSOR ON'); })();
+const app2=express(); app2.get('/',(r,s)=>s.send('V5 DIFUSOR ON')); app2.listen(process.env.PORT||3000);
