@@ -1,15 +1,13 @@
 {
-  "name": "sexomania-bot",
-  "version": "2.0.0",
-  "description": "Bot Sexomania Links - Categorias, Mis Grupos y Botonera",
+  "name": "bot-v9-ultra",
+  "version": "9.0.0",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "telegraf": "^4.15.0",
-    "firebase": "^10.12.2",
-    "express": "^4.19.2",
-    "dotenv": "^16.4.5"
+    "firebase-admin": "^12.0.0",
+    "dotenv": "^16.0.0"
   }
 }
