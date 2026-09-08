@@ -22,6 +22,8 @@ let pendingEdits = {};
 let pendingAdminEdit = null;
 let configBot = { catColors: {}, bienvenida: null, plantilla: null };
 let agregarEstado = {};
+global.popupCache = {};
+
 (async()=>{ try{ const s=await getDoc(doc(db,"config","bot")); if(s.exists()) configBot={...configBot,...s.data()}; }catch{} })();
 
 const CATS_USUARIO = ['CANALES ADULTOS','GRUPOS ADULTOS','VENTAS','PUBLICITARIOS','ENTRETENIMIENTO','ARTE'];
@@ -30,11 +32,61 @@ const CAT_BOTS = 'BOTS';
 function parseColor(t){ if(!t) return t; if(t.includes('#g')) return '🟢 '+t.replace(/#g/g,'').trim(); if(t.includes('#r')) return '🔴 '+t.replace(/#r/g,'').trim(); if(t.includes('#p')) return '🔵 '+t.replace(/#p/g,'').trim(); if(t.includes('#y')) return '🟡 '+t.replace(/#y/g,'').trim(); return t; }
 function textoSeguro(t){ if(!t) return "Chat"; t=parseColor(t); let b=0,r=""; for(const c of t){ const bl=Buffer.byteLength(c,'utf8'); if(b+bl>28) break; b+=bl; r+=c; } return r.trim()||"Chat"; }
 function getColorEmoji(cat){ const col=configBot.catColors?.[cat]||""; if(col==="#g") return "🟢"; if(col==="#r") return "🔴"; if(col==="#p") return "🔵"; if(col==="#y") return "🟡"; return ""; }
+
 function extraerBotonesDeDescripcion(desc){
-  const botones=[]; const lineas=(desc||"").split('\n'); let descripcionLimpia=[];
-  for(let linea of lineas){ let l=linea.trim(); let m=l.match(/^#(p|r|g|y)\s*(.+?)\s*-\s*(https?:\/\/\S+|t\.me\/\S+|@\S+)/i); if(m){ let color=m[1].toLowerCase(); let texto=m[2].trim(); let url=m[3].trim(); if(url.startsWith('t.me')||url.startsWith('@')) url='https://'+url.replace('@','t.me/'); if(!url.startsWith('http')) url='https://'+url; let emoji=color==='r'?'🔴':color==='g'?'🟢':color==='y'?'🟡':'🔵'; botones.push({texto:`${emoji} ${texto}`, url}); }else descripcionLimpia.push(linea); }
-  return {botones, descripcionLimpia: descripcionLimpia.join('\n').trim()};
+  const botonesFilas = [];
+  const lineas = (desc||"").split('\n');
+  let descripcionLimpia = [];
+  for(let linea of lineas){
+    let l = linea.trim();
+    if(l.length<3 ||!l.includes('-')) { descripcionLimpia.push(linea); continue; }
+    const partes = l.split('&&');
+    let filaActual = [];
+    let esBotonLinea = false;
+    for(let parte of partes){
+      parte = parte.trim();
+      let m = parte.match(/^(#p|#r|#g|#y)?\s*(.+?)\s*-\s*(.+)$/i);
+      if(m){
+        esBotonLinea = true;
+        let color = (m[1]||'').toLowerCase();
+        let texto = m[2].trim();
+        let url = m[3].trim();
+        let emoji = '';
+        if(color==='#r') emoji='🔴 ';
+        else if(color==='#g') emoji='🟢 ';
+        else if(color==='#y') emoji='🟡 ';
+        else if(color==='#p') emoji='🔵 ';
+        texto = emoji + texto;
+        let boton = null;
+        let lowUrl = url.toLowerCase();
+        if(lowUrl.startsWith('popup:') || lowUrl.startsWith('alert:')){
+          let txtPopup = url.split(':').slice(1).join(':').trim();
+          boton = { texto, tipo: 'popup', valor: txtPopup };
+        } else if(lowUrl === 'rules'){
+          boton = { texto, tipo: 'rules', valor: 'rules' };
+        } else if(lowUrl.startsWith('share:')){
+          let txtShare = url.split(':').slice(1).join(':').trim();
+          boton = { texto, tipo: 'share', valor: txtShare };
+        } else if(lowUrl.startsWith('copy:')){
+          let txtCopy = url.split(':').slice(1).join(':').trim();
+          boton = { texto, tipo: 'copy', valor: txtCopy };
+        } else {
+          if(url.startsWith('t.me') || url.startsWith('@')) url = 'https://'+url.replace('@','t.me/');
+          if(!url.startsWith('http')) url = 'https://'+url;
+          boton = { texto, tipo: 'url', valor: url };
+        }
+        filaActual.push(boton);
+      }
+    }
+    if(esBotonLinea && filaActual.length>0){
+      botonesFilas.push(filaActual);
+    } else {
+      descripcionLimpia.push(linea);
+    }
+  }
+  return { botonesFilas, descripcionLimpia: descripcionLimpia.join('\n').trim() };
 }
+
 function getBienvenida(ctx){
   const nombre = ctx.from.first_name || 'Bebe';
   const mention = `<a href="tg://user?id=${ctx.from.id}">${nombre}</a>`;
@@ -74,17 +126,49 @@ function getAdminKeyboard(){
   ]);
 }
 function getAdminCatKeyboard(){ const cats=[...CATS_USUARIO, CAT_BOTS]; let btns=[]; for(let c of cats){ let col=configBot.catColors?.[c]||"⚪"; btns.push([Markup.button.callback(`${col} ${c}`, 'editcat_'+c)]); } btns.push([Markup.button.callback('⬅️ Volver Admin','admin_back')]); return Markup.inlineKeyboard(btns); }
+
 async function mandarSeccion(sec,ctx){ await ctx.answerCbQuery().catch(()=>{}); const snap=await getDocs(query(collection(db,"chats"),where("seccion","==",sec))); if(snap.empty) return ctx.reply(`😈 Nada en ${sec} aún`,getMenuInline()); cacheChats={}; let btns=[]; snap.forEach(d=>{cacheChats[d.id]={id:d.id,...d.data()}; btns.push([Markup.button.callback(`${textoSeguro(d.data().nombre)} | ${d.data().clicks||0}`,`ver_${d.id}`)])}); btns.push([Markup.button.callback('⬅️ VOLVER','volver_menu')]); await ctx.reply(`📁 ${sec}:`,Markup.inlineKeyboard(btns)); }
+
 async function mandarUnChat(id,ctx){
   await ctx.answerCbQuery().catch(()=>{}); let c=cacheChats[id]; if(!c){ const s=await getDoc(doc(db,"chats",id)); if(!s.exists()) return ctx.reply('No existe'); c={id:s.id,...s.data()}; }
   try{ await updateDoc(doc(db,"chats",id), {clicks: increment(1)}); c.clicks=(c.clicks||0)+1; if(cacheChats[id]) cacheChats[id].clicks=c.clicks; }catch{}
-  const {botones, descripcionLimpia}=extraerBotonesDeDescripcion(c.desc); const cap=getCaption(c,descripcionLimpia);
-  let kb=[]; for(let b of botones) kb.push([Markup.button.url(b.texto,b.url)]); if(kb.length===0) kb.push([Markup.button.url('⚡ UNETE AQUI ⚡',c.link)]);
+  const {botonesFilas, descripcionLimpia}=extraerBotonesDeDescripcion(c.desc);
+  const cap=getCaption(c,descripcionLimpia);
+  let kb=[];
+  for(let fila of botonesFilas){
+    let filaKb = [];
+    for(let b of fila){
+      if(b.tipo==='url') filaKb.push(Markup.button.url(b.texto, b.valor));
+      else if(b.tipo==='popup'){
+        const keyBase = Buffer.from(b.valor).toString('base64').substring(0,40).replace(/=/g,'');
+        const cbData = `popup_${id}_${keyBase}`;
+        global.popupCache[`${id}_${keyBase}`] = b.valor;
+        filaKb.push(Markup.button.callback(b.texto, cbData));
+      }
+      else if(b.tipo==='share') filaKb.push(Markup.button.switchToChat(b.texto, b.valor));
+      else if(b.tipo==='copy') filaKb.push(Markup.button.callback(b.texto, `copy_${id}`));
+      else if(b.tipo==='rules') filaKb.push(Markup.button.callback(b.texto, `rules_${id}`));
+      if(b.tipo==='copy') global.popupCache[`copy_${id}`] = b.valor;
+    }
+    if(filaKb.length>0) kb.push(filaKb);
+  }
+  if(kb.length===0) kb.push([Markup.button.url('⚡ UNETE AQUI ⚡',c.link)]);
   kb.push([Markup.button.url('🔘 + Botonera','https://t.me/Sexomanialinksbot'),Markup.button.url('📝 + Listas','https://t.me/SexomaniaListas_Bot')]);
-  if(ctx.from.id==ADMIN_ID){ kb.push([Markup.button.callback('🟢','setcolor_'+id+'_#g'),Markup.button.callback('🔴','setcolor_'+id+'_#r'),Markup.button.callback('🔵','setcolor_'+id+'_#p'),Markup.button.callback('🟡','setcolor_'+id+'_#y'),Markup.button.callback('⚪','setcolor_'+id+'_none')]); kb.push([Markup.button.callback('🎨 EDITAR BOTONES','editbtns_'+id)]); kb.push([Markup.button.callback('🗑️ BORRAR BOTONES','clearbtns_'+id)]); kb.push([Markup.button.callback('❌ ELIMINAR CHAT','delchat_'+id)]); }
-  kb.push([Markup.button.callback('⬅️ Volver','sec_'+c.seccion)]); const kbd=Markup.inlineKeyboard(kb);
-  try{ if(c.foto && c.foto.startsWith('http')) await ctx.replyWithPhoto(c.foto,{caption:cap,parse_mode:'HTML',...kbd}); else if(c.foto && c.foto.startsWith('data:image')){ const buf=Buffer.from(c.foto.split(',')[1],'base64'); await ctx.replyWithPhoto({source:buf},{caption:cap,parse_mode:'HTML',...kbd}); } else await ctx.reply(cap,{parse_mode:'HTML',...kbd}); }catch(e){ await ctx.reply(cap,{parse_mode:'HTML',...kbd}); }
+  if(ctx.from.id==ADMIN_ID){
+    kb.push([Markup.button.callback('🟢','setcolor_'+id+'_#g'),Markup.button.callback('🔴','setcolor_'+id+'_#r'),Markup.button.callback('🔵','setcolor_'+id+'_#p'),Markup.button.callback('🟡','setcolor_'+id+'_#y'),Markup.button.callback('⚪','setcolor_'+id+'_none')]);
+    kb.push([Markup.button.callback('🎨 EDITAR BOTONES','editbtns_'+id)]);
+    kb.push([Markup.button.callback('🗑️ BORRAR BOTONES','clearbtns_'+id)]);
+    kb.push([Markup.button.callback('❌ ELIMINAR CHAT','delchat_'+id)]);
+  }
+  kb.push([Markup.button.callback('⬅️ Volver','sec_'+c.seccion)]);
+  const kbd=Markup.inlineKeyboard(kb);
+  try{
+    if(c.foto && c.foto.startsWith('http')) await ctx.replyWithPhoto(c.foto,{caption:cap,parse_mode:'HTML',...kbd});
+    else if(c.foto && c.foto.startsWith('data:image')){ const buf=Buffer.from(c.foto.split(',')[1],'base64'); await ctx.replyWithPhoto({source:buf},{caption:cap,parse_mode:'HTML',...kbd}); }
+    else await ctx.reply(cap,{parse_mode:'HTML',...kbd});
+  }catch(e){ await ctx.reply(cap,{parse_mode:'HTML',...kbd}); }
 }
+
 async function registrarUsuario(ctx){
   try{
     const user = ctx.from; const ref = doc(db,"usuarios", String(user.id)); const snap = await getDoc(ref); const esNuevo =!snap.exists();
@@ -92,6 +176,7 @@ async function registrarUsuario(ctx){
     if(esNuevo){ const fecha = new Date().toLocaleString('es-MX'); const info = `👤 𝗡𝗨𝗘𝗩𝗢 𝗨𝗦𝗨𝗔𝗥𝗜𝗢\n\n🆔 ID: <code>${user.id}</code>\n👤 Nombre: ${user.first_name||""}\n🔗 Username: @${user.username||"sin"}\n📅 ${fecha}\n\n<a href="tg://user?id=${user.id}">👉 Ver perfil</a>`; await bot.telegram.sendMessage(ADMIN_ID, info, {parse_mode:'HTML'}).catch(()=>{}); }
   }catch(e){ console.log("Error registro:", e.message); }
 }
+
 bot.command('menu', (ctx)=> ctx.reply(getBienvenida(ctx),{parse_mode:'HTML',...getMenuInline()}));
 bot.command('admin', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return ctx.reply('⛔ Solo admin'); await ctx.reply(`⚙️ 𝗣𝗔𝗡𝗘𝗟 𝗔𝗗𝗠𝗜𝗡`, getAdminKeyboard()); });
 bot.start(async (ctx)=>{ await registrarUsuario(ctx); await ctx.reply(getBienvenida(ctx),{parse_mode:'HTML',...getMenuInline()}); });
@@ -143,21 +228,45 @@ bot.action('admin_pendientes', async (ctx)=>{
 bot.action(/^aprobar_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('aprobar_',''); await updateDoc(doc(db,"chats",id),{pendiente:false}); await ctx.answerCbQuery({text:'Aprobado'}); await ctx.reply('✅ Aprobado'); });
 bot.action(/^rechazar_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('rechazar_',''); await deleteDoc(doc(db,"chats",id)); await ctx.answerCbQuery({text:'Rechazado'}); await ctx.reply('❌ Eliminado'); });
 bot.action('admin_add_bot', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; await ctx.answerCbQuery().catch(()=>{}); pendingAdminEdit='add_bot'; await ctx.reply('🤖 <b>AGREGAR BOT SOCIO</b>\n\nMándame en este formato:\n\n<code>Nombre del bot\n@username o link\nDescripcion</code>\n\nEjemplo:\nMi Bot XXX\n@MiBot\nEl mejor bot porno',{parse_mode:'HTML'}); });
-bot.action(/^delchat_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('delchat_',''); await deleteDoc(doc(db,"chats",id)); await ctx.answerCbQuery({text:'Eliminado'}); await ctx.reply('🗑️ Chat eliminado'); });
+bot . action ( /^delchat_/ , async  ( ctx ) => {  if ( ctx . from . id != ADMIN_ID )  return ; const  id = ctx . callbackQuery . data . replace ( 'delchat_' , '' ) ; await  deleteDoc ( doc ( db , "chats" , id ) ) ; await  ctx . answerCbQuery ( { text : 'Eliminado' } ) ; await  ctx . reply ( '🗑️ Chat eliminado' ) ; } ) ;
 
-bot.action('admin_back', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; await ctx.answerCbQuery().catch(()=>{}); await ctx.reply(`⚙️ 𝗣𝗔𝗡𝗘𝗟 𝗔𝗗𝗠𝗜𝗡`, getAdminKeyboard()); });
-bot.action('admin_cats', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; await ctx.answerCbQuery().catch(()=>{}); await ctx.reply(`🎨 COLORES CATEGORIAS:`, getAdminCatKeyboard()); });
-bot.action('admin_users', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const snap=await getDocs(collection(db,"usuarios")); await ctx.reply(`👥 Usuarios: ${snap.size}`, getAdminKeyboard()); });
-bot.action('admin_stats', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const snap=await getDocs(collection(db,"chats")); let total=0, vistas=0; snap.forEach(d=>{ total++; vistas+=(d.data().clicks||0); }); const snapU=await getDocs(collection(db,"usuarios")); await ctx.reply(`📊 Total chats: ${total}\n👁️ Vistas: ${vistas}\n👥 Usuarios: ${snapU.size}`, getAdminKeyboard()); });
-bot.action('admin_reset_views', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; await ctx.reply(`⚠️ ¿Resetear vistas?`, Markup.inlineKeyboard([[Markup.button.callback('✅ SI','admin_reset_confirm')],[Markup.button.callback('❌ NO','admin_back')]])); });
-bot.action('admin_reset_confirm', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const snap=await getDocs(collection(db,"chats")); for(let d of snap.docs){ await updateDoc(doc(db,"chats",d.id),{clicks:0}).catch(()=>{}); } await ctx.reply(`✅ Reset`, getAdminKeyboard()); });
-bot.action('admin_edit_welcome', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; pendingAdminEdit='welcome'; await ctx.reply(`💬 Manda nueva bienvenida con {mention} y {nombre}\n/cancel para cancelar`); });
-bot.action('admin_edit_template', async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; pendingAdminEdit='template'; await ctx.reply(`📝 Manda nueva plantilla con {nombre} {categoria} {emojiCat} {desc} {vistas}\n/cancel`); });
-bot.action(/^editcat_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const cat=ctx.callbackQuery.data.replace('editcat_',''); await ctx.reply(`Color para ${cat}:`, Markup.inlineKeyboard([[Markup.button.callback('🟢 Verde','setcatcolor_'+cat+'_#g'),Markup.button.callback('🔴 Rojo','setcatcolor_'+cat+'_#r')],[Markup.button.callback('🔵 Azul','setcatcolor_'+cat+'_#p'),Markup.button.callback('🟡 Amarillo','setcatcolor_'+cat+'_#y')],[Markup.button.callback('⚪ Sin color','setcatcolor_'+cat+'_none')],[Markup.button.callback('⬅️ Atras','admin_cats')]])); });
-bot.action(/^setcatcolor_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const data=ctx.callbackQuery.data.replace('setcatcolor_',''); const last=data.lastIndexOf('_'); const cat=data.substring(0,last); const color=data.substring(last+1); if(!configBot.catColors) configBot.catColors={}; if(color==='none') delete configBot.catColors[cat]; else configBot.catColors[cat]=color; await setDoc(doc(db,"config","bot"),configBot,{merge:true}); await ctx.reply(`✅ ${cat} -> ${color}`, getAdminCatKeyboard()); });
-bot.action(/^editbtns_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('editbtns_',''); pendingEdits[ctx.from.id]=id; await ctx.reply(`🎨 Manda botones:\n#p Texto - https://t.me/link`); });
-bot.action(/^clearbtns_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const id=ctx.callbackQuery.data.replace('clearbtns_',''); const ref=doc(db,"chats",id); const snap=await getDoc(ref); const {descripcionLimpia}=extraerBotonesDeDescripcion(snap.data().desc); await updateDoc(ref,{desc:descripcionLimpia}); await ctx.answerCbQuery({text:"Borrados"}); });
-bot.action(/^setcolor_/, async (ctx)=>{ if(ctx.from.id!=ADMIN_ID) return; const data=ctx.callbackQuery.data.replace('setcolor_',''); const last=data.lastIndexOf('_'); const id=data.substring(0,last); const color=data.substring(last+1); const ref=doc(db,"chats",id); const snap=await getDoc(ref); let nombreActual=snap.data().nombre.replace(/#g|#r|#p|#y/g,'').trim(); let nuevo=color==='none'?nombreActual:`${nombreActual} ${color}`; await updateDoc(ref,{nombre:nuevo}); await ctx.reply(`✅ ${nuevo}`); });
+bot.action ( ' admin_back ' , async ( ctx ) = > { if ( ctx.from.id ! = ADMIN_ID ) return ; await ctx.answerCbQuery ( ) . catch ( ( ) = > { } ) ; await ctx.reply ( ` ⚙️ 𝗣𝗔𝗡𝗘𝗟 𝗔𝗗𝗠𝗜𝗡` , getAdminKeyboard ( ) ) ; } ) ;​​     
+bot.action ( ' admin_cats ' , async ( ctx ) = > { if ( ctx.from.id ! = ADMIN_ID ) return ; await ctx.answerCbQuery ( ) . catch ( ( ) = > { } ) ; await ctx.reply ( ` 🎨 COLORES CATEGORÍAS : ` , getAdminCatKeyboard ( ) ) ; } ) ;     
+bot.action ( ' admin_users ' , async ( ctx ) = > { if ( ctx.from.id ! = ADMIN_ID ) return ; const snap = await getDocs ( collection ( db , " usuarios " ) ) ; await ctx.reply ( ` 👥 Usuarios : $ { snap.size } ` , getAdminKeyboard ( ) ) ; } ) ;      
+bot.action ( 'admin_stats' , async ( ctx ) = > { if ( ctx.from.id ! = ADMIN_ID ) return ; const snap = await getDocs ( collection ( db , " chats " ) ) ; let total = 0 , vistas = 0 ; snap.forEach ( d = > { total ++; vistas += ( d.data ( ) . clicks || 0 ) ; } ) ; const snapU = await getDocs ( collection ( db , "usuarios" ) ) ; await ctx.reply ( ` 📊 Total chats : $ { total } \ n 👁️ Vistas: ${ vistas } \ n 👥 Usuarios: ${ snapU.size } ` , getAdminKeyboard ( ) ) ; } ) ;          
+bot.action ( ' admin_reset_views' , async ( ctx ) = > { if ( ctx.from.id ! = ADMIN_ID ) return ; await ctx.reply ( ` ⚠️ ¿Restablecer vistas ? ` , Markup.inlineKeyboard ( [ [ Markup.button.callback ( ' ✅ SI ' , ' admin_reset_confirm ' ) ] , [ Markup.button.callback ( ' ❌ NO ' , ' admin_back ' ) ] ] ) ) ; } ) ;    
+bot.action ( ' admin_reset_confirm ' , async ( ctx ) = > { if ( ctx.from.id ! = ADMIN_ID ) return ; const snap = await getDocs ( collection ( db , " chats " ) ) ; for ( let d of snap.docs ) { await updateDoc ( doc ( db , " chats " , d.id ) , { clicks : 0 } ) . catch ( ( ) = > { } ) ; } await ctx.reply ( ` ✅ Reset` , getAdminKeyboard ( ) ) ; } ) ;​            
+bot.action ( 'admin_edit_welcome' , async ( ctx ) => { if (ctx.from.id != ADMIN_ID ) return ; pendingAdminEdit = ' welcome ' ; await ctx.reply ( ` 💬 Manda nueva bienvenida con { mention } y { nombre } \n /cancel para cancelar` ) ; } ) ;    
+bot.action ( ' admin_edit_template ' , async ( ctx ) => { if ( ctx.from.id ! = ADMIN_ID ) return ; pendingAdminEdit = 'template' ; await ctx.reply ( ` 📝 Manda nueva plantilla con { nombre } { categoria} { emojiCat } { desc } {vistas} \n /cancel` ) ; } ) ;    
+bot . acción ( /^editcat_/ , async  ( ctx ) => {  if ( ctx . from . id != ADMIN_ID )  return ; const  cat = ctx . callbackQuery . data . replace ( 'editcat_' , '' ) ; await  ctx . reply ( `Color para ${ cat } :` , Markup . inlineKeyboard ( [ [ Markup . button . callback ( '🟢 Verde' , 'setcatcolor_' + cat + '_#g' ) , Markup . button . callback ( '🔴 Rojo' , 'setcatcolor_' + cat + '_#r' ) ] , [ Markup . button . callback ( '🔵 Azul' , 'setcatcolor_' + cat + '_#p' ) , Markup . button . callback ( '🟡 Amarillo' , [ Markup.button.callback ( ' ⚪ Sin color ' , ' setcatcolor_ ' + cat + ' _ # y ' ) ] , [ Markup.button.callback ( ' ⬅️ Atras ' , ' admin_cats ' ) ] ] ) ) ; } ) ;​
+bot . acción ( /^setcatcolor_/ , async  ( ctx ) => {  if ( ctx . from . id != ADMIN_ID )  return ; const  data = ctx . callbackQuery . data . replace ( 'setcatcolor_' , '' ) ; const  last = data . lastIndexOf ( '_' ) ; const  cat = data . substring ( 0 , last ) ; const  color = data . substring ( last + 1 ) ; if ( ! configBot . catColors )  configBot . catColors = { } ; if ( color === 'none' )  delete  configBot . catColors [ cat ] ; else  configBot . catColors [ cat ] = color ; await  setDoc ( doc ( db , "config" , "bot" ) , configBot , { merge : verdadero } ) ; await  ctx . reply ( `✅ ${ cat } -> ${ color } ` , getAdminCatKeyboard ( ) ) ; } ) ;
+bot . action ( /^editbtns_/ , async  ( ctx ) => {  if ( ctx . from . id != ADMIN_ID )  return ; const  id = ctx . callbackQuery . data . replace ( 'editbtns_' , '' ) ; ediciones pendientes [ ctx . from . id ] = id ; aguarde  ctx . respuesta ( `🎨 Manda botones con tu sintaxis: \n\n #p Unete - t.me/link \n Titulo - t.me/link && Otro - t.me/link \ n Reglas - reglas \ n Aviso - popup:Texto \n Compartir - share:Texto` , { parse_mode : 'HTML' } } ) ;
+bot . action ( /^clearbtns_/ , async  ( ctx ) => {  if ( ctx . from . id != ADMIN_ID )  return ; const  id = ctx . callbackQuery . data . replace ( 'clearbtns_' , '' ) ; const  ref = doc ( db , "chats" , id ) ; const  snap = await  getDoc ( ref ) ; const  { descripcionLimpia } = extraerBotonesDeDescripcion ( snap . data ( ) . desc ) ; await  updateDoc ( ref , { desc : descripcionLimpia } ) ; await  ctx . answerCbQuery ( { text : "Borrados" } ) ; } ) ;
+bot . acción ( /^setcolor_/ , async  ( ctx ) => {  if ( ctx . from . id != ADMIN_ID )  return ; const  data = ctx . callbackQuery . data . replace ( 'setcolor_' , '' ) ; const  last = data . lastIndexOf ( '_' ) ; const  id = data . substring ( 0 , last ) ; const  color = data . substring ( last + 1 ) ; const  ref = doc ( db , "chats" , id ) ; const  snap = await  getDoc ( ref ) ; let  nombreActual = snap . data ( ) . nombre . replace ( /#g|#r|#p|#y/g , '' ) . trim ( ) ; let  nuevo = color === 'none' ? nombreActual : ` ${ nombreActual } ${ color } ` ; await updateDoc ( ref , { nombre : nuevo } ) ; espera ctx . responder ( `✅ ${ nuevo } ` ) ; } ) ;   
+
+bot.acción ( /^popup_ / , async ( ctx ) = > { 
+  intentar {
+    const  data = ctx . callbackQuery . data . replace ( 'popup_' , '' ) ;
+    const idx = data.indexOf('_');
+    const chatId = data.substring(0,idx);
+    const key = data.substring(idx+1);
+    const texto = global.popupCache[`${chatId}_${key}`] || "Sin texto";
+    await ctx.answerCbQuery(texto, {show_alert: true});
+  }catch{}
+});
+bot.action(/^copy_/, async (ctx)=>{
+  try{
+    const id = ctx.callbackQuery.data.replace('copy_','');
+    const texto = global.popupCache[`copy_${id}`] || "";
+    await ctx.answerCbQuery(`📋 ${texto}`, {show_alert: true});
+  }catch{}
+});
+bot.action(/^rules_/, async (ctx)=>{
+  try{
+    await ctx.answerCbQuery("📜 Reglas: Respetar, no spam, no CP. Cualquier falta = ban", {show_alert: true});
+  }catch{}
+});
+
 bot.command('cancel',(ctx)=>{ delete pendingEdits[ctx.from.id]; pendingAdminEdit=null; delete agregarEstado[ctx.from.id]; ctx.reply("❌ Cancelado"); });
 
 bot.on('text', async (ctx,next)=>{
@@ -186,5 +295,6 @@ bot.on('text', async (ctx,next)=>{
 bot.action('volver_menu', async (ctx)=>{ await ctx.answerCbQuery().catch(()=>{}); await ctx.reply(getBienvenida(ctx),{parse_mode:'HTML',...getMenuInline()}); });
 bot.action(/^sec_/, async (ctx)=>{ await mandarSeccion(ctx.callbackQuery.data.replace('sec_',''),ctx); });
 bot.action(/^ver_/, async (ctx)=>{ await mandarUnChat(ctx.callbackQuery.data.replace('ver_',''),ctx); });
-(async()=>{ await bot.telegram.deleteWebhook().catch(()=>{}); await bot.launch(); console.log('SEXOMANIA LINKS V2 ON'); })();
-const app2=express(); app2.get('/',(r,s)=>s.send('ON')); app2.listen(process.env.PORT||3000);
+
+(async()=>{ await bot.telegram.deleteWebhook().catch(()=>{}); await bot.launch(); console.log('SEXOMANIA LINKS V3 BOTONERA ON'); })();
+const app2=express(); app2.get('/',(r,s)=>s.send('V3 ON')); app2.listen(process.env.PORT||3000);
