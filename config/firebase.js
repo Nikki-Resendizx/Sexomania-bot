@@ -1,41 +1,21 @@
-const { initializeApp } = require('firebase/app');
-const { getFirestore, doc, getDoc } = require('firebase/firestore');
+const admin = require('firebase-admin');
 
-const firebaseConfig = {
-  apiKey: "AIzaSyC6eyDXaTCPgcb_se9vVP4rfwVkdc0ayn0",
-  authDomain: "sexomania-links.firebaseapp.com",
-  projectId: "sexomania-links",
-  storageBucket: "sexomania-links.firebasestorage.app",
-  messagingSenderId: "1061811152332",
-  appId: "1:1061811152332:web:8d75649506182236862969"
-};
+let serviceAccount;
 
-const appFb = initializeApp(firebaseConfig);
-const db = getFirestore(appFb);
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  // Si lo tienes como variable en Render
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} else {
+  // Si lo tienes como archivo
+  serviceAccount = require('./serviceAccountKey.json');
+}
 
-let configBot = {
-  catColors: {},
-  bienvenida: null,
-  plantilla: null,
-  logChannel: null,
-  originChannel: null,
-  mainChannel: -1001234567890, // CAMBIA ESTO POR TU CANAL PRINCIPAL
-  zonaHoraria: 'America/Mexico_City',
-  idioma: 'es',
-  listasMsgIds: {},
-  ultimoCheckLinks: null
-};
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
 
-(async () => {
-  try {
-    const s = await getDoc(doc(db, "config", "bot"));
-    if (s.exists()) {
-      configBot = { ...configBot, ...s.data() };
-      console.log("✅ Config cargada");
-    }
-  } catch (e) {
-    console.log("Error config:", e.message);
-  }
-})();
+const db = admin.firestore();
 
-module.exports = { db, configBot };
+module.exports = { db, admin };
