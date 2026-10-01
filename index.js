@@ -68,7 +68,7 @@ bot.start(async ctx => {
 
 bot.command('cancel', async ctx => {
   if (ctx.session) {
-    for (const key of ['esperandoCanal', 'cambiandoEnlace', 'cambiandoNombre']) delete ctx.session[key];
+    for (const key of ['esperandoCanal', 'cambiandoEnlace', 'cambiandoNombre', 'adminCategoryAction']) delete ctx.session[key];
   }
   await ctx.reply('✅ Operación cancelada.');
 });
