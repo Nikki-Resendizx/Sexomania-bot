@@ -41,7 +41,9 @@ function setupCanalesHandler(bot) {
     const [, tipo, raw] = (ctx.message.text || '').trim().split(/\s+/);
     if (!TIPOS_CANALES.has(tipo) || !raw) return ctx.reply('Uso: /setcanal <principal|log|origen|registro_privado> <-100ID>');
     const id = Number(raw);
-    if (!Number.isSafeInteger(id)) return ctx.reply('❌ ID inválido.');
+    if (!Number.isSafeInteger(id) || !String(id).startsWith('-100')) {
+      return ctx.reply('❌ ID inválido. Debe ser un ID de canal/supergrupo (-100...).');
+    }
     try {
       await setCanal(tipo, id);
       await ctx.reply(`✅ Canal ${tipo} actualizado a ${id}`);
@@ -63,9 +65,14 @@ function canalesMiddleware() {
     if (!adminOnly(ctx) || !ctx.session?.esperandoCanal || !ctx.message) return next();
     const tipo = ctx.session.esperandoCanal;
     let id = null;
-    if (ctx.message.forward_from_chat?.id) id = ctx.message.forward_from_chat.id;
-    else if (typeof ctx.message.text === 'string' && /^-100\d+$/.test(ctx.message.text.trim())) id = Number(ctx.message.text.trim());
-    if (!id) return next();
+    if (ctx.message.forward_from_chat?.id) {
+      id = ctx.message.forward_from_chat.id;
+    } else if (ctx.message.forward_origin?.chat?.id) {
+      id = ctx.message.forward_origin.chat.id;
+    } else if (typeof ctx.message.text === 'string' && /^-100\d+$/.test(ctx.message.text.trim())) {
+      id = Number(ctx.message.text.trim());
+    }
+    if (!id || !String(id).startsWith('-100')) return next();
 
     try {
       await setCanal(tipo, id);
