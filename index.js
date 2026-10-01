@@ -1,87 +1,124 @@
 require('dotenv').config();
+
 const { Telegraf, session, Markup } = require('telegraf');
 const { db } = require('./config/firebase');
-const { getChannels } = require('./config/constantes');
+const { isAdmin } = require('./config/constantes');
 
-const bot = new Telegraf(process.env.BOT_TOKEN || process.env.TOKEN_BOT);
+const token = process.env.BOT_TOKEN || process.env.TOKEN_BOT;
+if (!token) throw new Error('❌ Falta BOT_TOKEN/TOKEN_BOT en las variables de entorno.');
+
+const bot = new Telegraf(token);
 bot.use(session());
 
-const ADMIN_ID = 8695673050;
-
-// 👇 ANTI-FLOOD Y ANTI-SPAM 👇
 const userLastMessage = new Map();
-bot.use(async (ctx, next) => {
-  if (!ctx.from) return next();
-  const userId = ctx.from.id;
-  const now = Date.now();
-  const lastTime = userLastMessage.get(userId) || 0;
-  const diff = now - lastTime;
+const FLOOD_INTERVAL_MS = Number(process.env.FLOOD_INTERVAL_MS || 1500);
 
-  // Si manda mensajes cada menos de 1.5 segundos, lo ignoramos
-  if (diff < 1500 && String(userId)!== String(ADMIN_ID)) {
-    return; // No hace nada, evita flood
+bot.use(async (ctx, next) => {
+  if (!ctx.from || isAdmin(ctx.from.id)) return next();
+
+  const now = Date.now();
+  const last = userLastMessage.get(ctx.from.id) || 0;
+  if (now - last < FLOOD_INTERVAL_MS) return;
+
+  userLastMessage.set(ctx.from.id, now);
+  // Evita crecimiento indefinido de la caché en procesos largos.
+  if (userLastMessage.size > 10000) {
+    const oldest = userLastMessage.keys().next().value;
+    if (oldest !== undefined) userLastMessage.delete(oldest);
   }
-  userLastMessage.set(userId, now);
   return next();
 });
 
-// Filtro anti-spam para texto
-const palabrasProhibidas = ['http://', 'https://', '.com', '@']; // Evita que usuarios spameen links
+// Anti-spam: bloquea URLs evidentes, pero NO @username.
 bot.use(async (ctx, next) => {
-  if (ctx.message && ctx.message.text && String(ctx.from.id)!== String(ADMIN_ID)) {
-    const texto = ctx.message.text.toLowerCase();
-    // Si no es comando y trae link, lo borra
-    if (!texto.startsWith('/') && palabrasProhibidas.some(p => texto.includes(p))) {
-      try { await ctx.deleteMessage(); } catch {}
-      return ctx.reply('❌ No se permiten links, bebé 😈');
-    }
+  if (!ctx.message?.text || isAdmin(ctx.from?.id)) return next();
+
+  const text = ctx.message.text.toLowerCase();
+  const hasUrl = /(?:https?:\/\/|www\.|(?:[a-z0-9-]+\.)+(?:com|net|org|xyz|top)(?:\/|\b))/i.test(text);
+
+  if (!text.startsWith('/') && hasUrl) {
+    try { await ctx.deleteMessage(); } catch {}
+    return ctx.reply('❌ No se permiten enlaces.');
   }
   return next();
 });
 
 async function getFotoBienvenida() {
+  if (!db) return 'https://i.imgur.com/8Km9tLL.jpg';
   try {
-    if (!db) return 'https://i.imgur.com/8Km9tLL.jpg';
     const doc = await db.collection('config').doc('bot').get();
-    if (doc.exists && doc.data().welcomePhoto) return doc.data().welcomePhoto;
+    return doc.exists && doc.data().welcomePhoto
+      ? doc.data().welcomePhoto
+      : 'https://i.imgur.com/8Km9tLL.jpg';
+  } catch (error) {
+    console.error('❌ Error leyendo bienvenida:', error.message);
     return 'https://i.imgur.com/8Km9tLL.jpg';
-  } catch { return 'https://i.imgur.com/8Km9tLL.jpg'; }
+  }
 }
 
-bot.start(async (ctx) => {
+bot.start(async ctx => {
   const nombre = ctx.from.first_name || 'bebé';
   const foto = await getFotoBienvenida();
   await ctx.replyWithPhoto(foto, {
     caption: `🔥 *Bienvenid@ ${nombre} a SEXOMANIA V9 ULTRA* 🔥\n\n😈 El bot más cochino de Telegram 😈`,
     parse_mode: 'Markdown',
-   ...Markup.inlineKeyboard([[Markup.button.callback('📂 Mis Chats', 'mis_chats')]])
+    ...Markup.inlineKeyboard([[Markup.button.callback('📂 Mis Chats', 'mis_chats')]])
   });
 });
 
-bot.command('setfoto', async (ctx) => {
-  if (String(ctx.from.id)!== String(ADMIN_ID)) return ctx.reply('❌ Solo la jefa 😈');
+bot.command('cancel', async ctx => {
+  if (ctx.session) {
+    for (const key of ['esperandoCanal', 'cambiandoEnlace', 'cambiandoNombre']) delete ctx.session[key];
+  }
+  await ctx.reply('✅ Operación cancelada.');
+});
+
+bot.command('setfoto', async ctx => {
+  if (!isAdmin(ctx.from?.id)) return ctx.reply('❌ Solo administradores.');
+  if (!db) return ctx.reply('❌ Firebase no está configurado.');
+
   let nuevaFoto = null;
-  if (ctx.message.reply_to_message?.photo) {
-    nuevaFoto = ctx.message.reply_to_message.photo.pop().file_id;
+  if (ctx.message.reply_to_message?.photo?.length) {
+    nuevaFoto = ctx.message.reply_to_message.photo.at(-1).file_id;
   } else {
-    const args = ctx.message.text.split(' ');
+    const args = ctx.message.text.trim().split(/\s+/);
     if (args[1]) nuevaFoto = args[1];
   }
-  if (!nuevaFoto) return ctx.reply('Responde a una foto con /setfoto jefa');
-  await db.collection('config').doc('bot').set({ welcomePhoto: nuevaFoto }, { merge: true });
-  await ctx.reply('✅ Foto cambiada 🔥');
+
+  if (!nuevaFoto) return ctx.reply('Responde a una foto con /setfoto o proporciona una URL.');
+  try {
+    await db.collection('config').doc('bot').set({ welcomePhoto: nuevaFoto }, { merge: true });
+    await ctx.reply('✅ Foto de bienvenida actualizada.');
+  } catch (error) {
+    console.error('❌ /setfoto:', error);
+    await ctx.reply('❌ No pude guardar la foto.');
+  }
 });
 
 const canalesHandler = require('./handlers/admin/canales');
-if (canalesHandler.configurarControladorDeCanales) {
-  bot.use(canalesHandler.configurarControladorDeCanales);
-  canalesHandler.configurarControladorDeCanales(bot);
-}
+canalesHandler.setupCanalesHandler(bot);
+bot.use(canalesHandler.canalesMiddleware());
+
 require('./handlers/admin/chats')(bot);
 require('./handlers/admin/users')(bot);
 
-console.log('Canales cargados con Antiflood activo 🛡️');
-bot.launch().then(() => console.log('Bot V9 ULTRA encendido 🔥 SIN RIESGO DE SPAM'));
+bot.catch((error, ctx) => {
+  console.error('❌ Error no controlado:', {
+    updateId: ctx?.update?.update_id,
+    userId: ctx?.from?.id,
+    message: error?.message,
+    stack: error?.stack
+  });
+});
+
+console.log('✅ Handlers cargados. Antiflood y seguridad activos.');
+
+bot.launch()
+  .then(() => console.log('🔥 SEXOMANIA V10 encendido.'))
+  .catch(error => {
+    console.error('❌ No se pudo iniciar el bot:', error);
+    process.exitCode = 1;
+  });
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
