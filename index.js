@@ -95,6 +95,9 @@ bot.command('setfoto', async ctx => {
   }
 });
 
+const adminPanel = require('./handlers/admin/panel');
+adminPanel.register(bot);
+
 const canalesHandler = require('./handlers/admin/canales');
 canalesHandler.setupCanalesHandler(bot);
 bot.use(canalesHandler.canalesMiddleware());
