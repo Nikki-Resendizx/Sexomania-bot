@@ -169,7 +169,7 @@ function register(bot) {
     await ctx.answerCbQuery();
   });
 
-  bot.action('cat_add', async ctx => {
+  bot.action(/^cat_edit_(\\d+)$/, async ctx => {\n    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });\n    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });\n    const i = Number(ctx.match[1]);\n    const ref = db.collection('config').doc('categorias');\n    const d = await ref.get();\n    const lista = d.exists && Array.isArray(d.data().lista) ? [...d.data().lista] : [];\n    if (!lista[i]) return ctx.answerCbQuery('Categoría no encontrada', { show_alert: true });\n    ctx.session = ctx.session || {};\n    ctx.session.adminCategoryAction = 'edit:' + i;\n    await ctx.reply('✏️ Escribe el nuevo nombre para: ' + lista[i] + '\\n\\n/cancel para cancelar.');\n    await ctx.answerCbQuery();\n  });\n\n  bot.action('cat_add', async ctx => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     ctx.session = ctx.session || {};
     ctx.session.adminCategoryAction = 'add';
