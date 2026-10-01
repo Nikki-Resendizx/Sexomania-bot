@@ -250,6 +250,7 @@ function register(bot) {
     const lista = d.exists && Array.isArray(d.data().lista) ? [...d.data().lista] : [];
     if (action === 'add') {
       if (lista.some(c => String(c).toLowerCase() === value.toLowerCase())) {
+        ctx.session.adminCategoryAction = null;
         return ctx.reply('⚠️ Esa categoría ya existe.');
       }
       lista.push(value);
@@ -258,6 +259,28 @@ function register(bot) {
         [Markup.button.callback('📁 VER CATEGORÍAS', 'admin_cats')]
       ]));
     }
+
+    if (action.startsWith('edit:')) {
+      const i = Number(action.split(':')[1]);
+      if (!Number.isInteger(i) || !lista[i]) {
+        return ctx.reply('❌ La categoría que intentas editar ya no existe.');
+      }
+      if (lista.some((c, index) => index !== i && String(c).toLowerCase() === value.toLowerCase())) {
+        return ctx.reply('⚠️ Esa categoría ya existe.');
+      }
+      const anterior = lista[i];
+      lista[i] = value;
+      await ref.set({ lista, updatedAt: new Date() }, { merge: true });
+      return ctx.reply(
+        '✅ Categoría actualizada.\\n\\n' +
+        'Antes: ' + anterior + '\\n' +
+        'Ahora: ' + value,
+        Markup.inlineKeyboard([
+          [Markup.button.callback('📁 VER CATEGORÍAS', 'admin_cats')]
+        ])
+      );
+    }
+
     return next();
   });
 }
