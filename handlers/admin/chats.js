@@ -2,12 +2,15 @@ const { Markup } = require('telegraf');
 const { db } = require('../../config/firebase');
 const { extraerInfoChat } = require('../../utils/extractor');
 const { getDetallesChatKeyboard } = require('../../utils/keyboards');
-const { ESTADOS_CHAT } = require('../../config/constantes');
+const { ESTADOS_CHAT, isAdmin } = require('../../config/constantes');
 
 function setupChatsHandler(bot) {
+  const guard = ctx => isAdmin(ctx.from?.id);
 
   // /info chat
   bot.command('info', async (ctx) => {
+    if (!guard(ctx)) return ctx.reply('⛔ Solo administradores.');
+    if (!db) return ctx.reply('❌ Base de datos no configurada.');
     let args = ctx.message.text.split(' ');
     if (args.length < 2) return ctx.reply('Uso: /info <ID del chat>');
     let chatId = args[1];
@@ -36,6 +39,7 @@ function setupChatsHandler(bot) {
 
   // Detalle con 5 botones - 1 Cambiar enlace, 2 AutoBan, 3 Cambiar nombre, 4 Cambiar cat, 5 Aprobar
   bot.action(/chat_cambiar_enlace_(.+)/, async (ctx) => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     let chatId = ctx.match[1];
     ctx.session = ctx.session || {};
     ctx.session.cambiandoEnlace = chatId;
@@ -44,6 +48,7 @@ function setupChatsHandler(bot) {
   });
 
   bot.action(/chat_cambiar_nombre_(.+)/, async (ctx) => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     let chatId = ctx.match[1];
     ctx.session = ctx.session || {};
     ctx.session.cambiandoNombre = chatId;
@@ -52,6 +57,8 @@ function setupChatsHandler(bot) {
   });
 
   bot.action(/chat_cambiar_cat_(.+)/, async (ctx) => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    if (!db) return ctx.answerCbQuery('Base de datos no disponible', { show_alert: true });
     let chatId = ctx.match[1];
     let snap = await db.collection('config').doc('categorias').get();
     let cats = snap.exists? snap.data().lista : [];
@@ -64,6 +71,7 @@ function setupChatsHandler(bot) {
   });
 
   bot.action(/set_cat_(.+)_(.+)/, async (ctx) => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     let chatId = ctx.match[1];
     let cat = ctx.match[2];
     await db.collection('chats').doc(chatId).update({ categoria: cat });
@@ -73,6 +81,7 @@ function setupChatsHandler(bot) {
   });
 
   bot.action(/chat_autoban_(.+)/, async (ctx) => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     let chatId = ctx.match[1];
     await db.collection('chats').doc(chatId).update({ autoBaneado: true, baneadoAdmin: true, estado: ESTADOS_CHAT.BANEADO });
     await ctx.answerCbQuery('🚫 AutoBan activado');
@@ -80,6 +89,7 @@ function setupChatsHandler(bot) {
   });
 
   bot.action(/chat_aprobar_(.+)/, async (ctx) => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     let chatId = ctx.match[1];
     let info = await extraerInfoChat(ctx, chatId);
     let update = {
@@ -104,6 +114,7 @@ function setupChatsHandler(bot) {
   });
 
   bot.action(/detalles_chat_(.+)/, async (ctx) => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     let chatId = ctx.match[1];
     let doc = await db.collection('chats').doc(chatId).get();
     if (!doc.exists) return ctx.answerCbQuery('No existe');
