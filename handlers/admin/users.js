@@ -1,11 +1,14 @@
 const { db } = require('../../config/firebase');
 const { extraerInfoUsuario } = require('../../utils/extractor');
 const { getDetallesUsuarioKeyboard } = require('../../utils/keyboards');
-const { ESTADOS_USUARIO } = require('../../config/constantes');
+const { ESTADOS_USUARIO, isAdmin } = require('../../config/constantes');
 
 function setupUsersHandler(bot) {
+  const guard = ctx => isAdmin(ctx.from?.id);
 
   bot.command('infouser', async (ctx) => {
+    if (!guard(ctx)) return ctx.reply('⛔ Solo administradores.');
+    if (!db) return ctx.reply('❌ Base de datos no configurada.');
     let args = ctx.message.text.split(' ');
     if (args.length < 2) return ctx.reply('Uso: /infouser <ID usuario> o reenvía un mensaje del usuario');
 
@@ -34,6 +37,7 @@ function setupUsersHandler(bot) {
 
   // Para que /info también funcione con usuarios si reenvías
   bot.on('message', async (ctx, next) => {
+    if (!guard(ctx)) return next();
     if (ctx.session?.cambiandoEnlace) {
       let chatId = ctx.session.cambiandoEnlace;
       let nuevoEnlace = ctx.message.text;
