@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const { Telegraf, session, Markup } = require('telegraf');
-const { db } = require('./config/firebase');
+const { db, admin } = require('./config/firebase');
 const { isAdmin } = require('./config/constantes');
 
 const token = process.env.BOT_TOKEN || process.env.TOKEN_BOT;
@@ -43,6 +43,37 @@ bot.use(async (ctx, next) => {
   return next();
 });
 
+async function registrarUsuario(ctx) {
+  if (!db || !ctx.from?.id) return;
+
+  const user = ctx.from;
+  const ref = db.collection('usuarios').doc(String(user.id));
+
+  try {
+    const payload = {
+      id: user.id,
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      username: user.username || null,
+      language_code: user.language_code || null,
+      esAdmin: isAdmin(user.id),
+      ultimaActividad: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    const snap = await ref.get();
+    if (!snap.exists) {
+      payload.fechaIngreso = admin.firestore.FieldValue.serverTimestamp();
+      payload.creado = admin.firestore.FieldValue.serverTimestamp();
+      payload.baneado = false;
+      payload.chatsRegistrados = 0;
+    }
+
+    await ref.set(payload, { merge: true });
+  } catch (error) {
+    console.error('❌ Error registrando usuario:', error.message);
+  }
+}
+
 async function getFotoBienvenida() {
   if (!db) return 'https://i.imgur.com/8Km9tLL.jpg';
   try {
@@ -57,6 +88,7 @@ async function getFotoBienvenida() {
 }
 
 bot.start(async ctx => {
+  await registrarUsuario(ctx);
   const nombre = ctx.from.first_name || 'bebé';
   const foto = await getFotoBienvenida();
   await ctx.replyWithPhoto(foto, {
