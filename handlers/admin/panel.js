@@ -1,34 +1,14 @@
 const { Markup } = require('telegraf');
 const { db } = require('../../config/firebase');
 const { isAdmin, ADMIN_IDS } = require('../../config/constantes');
-const { getPanelAdminPrincipal } = require('../../utils/keyboards');
 
 const guard = ctx => isAdmin(ctx.from?.id);
 
 const panelKeyboard = () => Markup.inlineKeyboard([
-  [
-    Markup.button.callback('👮 ADMINS', 'adm_gestion', { style: 'primary' }),
-    Markup.button.callback('📊 ESTADÍSTICAS', 'adm_stats', { style: 'primary' })
-  ],
-  [
-    Markup.button.callback('👥 USUARIOS', 'adm_lista_users', { style: 'success' }),
-    Markup.button.callback('🔍 BUSCAR', 'gestion_buscar', { style: 'secondary' })
-  ],
-  [
-    Markup.button.callback('📢 PUBLICACIONES', 'adm_publicaciones', { style: 'primary' }),
-    Markup.button.callback('📁 CATEGORÍAS', 'admin_cats', { style: 'primary' })
-  ],
-  [
-    Markup.button.callback('📺 CANALES / GRUPOS', 'admin_gestionar', { style: 'success' }),
-    Markup.button.callback('⏳ PENDIENTES', 'admin_pendientes', { style: 'secondary' })
-  ],
-  [
-    Markup.button.callback('🚫 BANEADOS', 'admin_baneados', { style: 'danger' }),
-    Markup.button.callback('⚙️ CONFIGURACIÓN', 'adm_config', { style: 'secondary' })
-  ],
-  [
-    Markup.button.callback('🧹 MANTENIMIENTO', 'adm_maintenance', { style: 'danger' })
-  ],
+  [Markup.button.callback('👮 ADMINS', 'adm_gestion', { style: 'primary' }), Markup.button.callback('📊 ESTADÍSTICAS', 'adm_stats', { style: 'primary' })],
+  [Markup.button.callback('👥 USUARIOS', 'adm_lista_users', { style: 'success' }), Markup.button.callback('📁 CATEGORÍAS', 'admin_cats', { style: 'primary' })],
+  [Markup.button.callback('📢 CANALES / LOG / ORIGEN', 'adm_logorigen', { style: 'success' })],
+  [Markup.button.callback('⚙️ CONFIGURACIÓN', 'adm_config', { style: 'secondary' }), Markup.button.callback('🧹 MANTENIMIENTO', 'adm_maintenance', { style: 'danger' })],
   [Markup.button.callback('❌ CERRAR', 'adm_close', { style: 'danger' })]
 ]);
 
@@ -169,7 +149,21 @@ function register(bot) {
     await ctx.answerCbQuery();
   });
 
-  bot.action(/^cat_edit_(\\d+)$/, async ctx => {\n    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });\n    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });\n    const i = Number(ctx.match[1]);\n    const ref = db.collection('config').doc('categorias');\n    const d = await ref.get();\n    const lista = d.exists && Array.isArray(d.data().lista) ? [...d.data().lista] : [];\n    if (!lista[i]) return ctx.answerCbQuery('Categoría no encontrada', { show_alert: true });\n    ctx.session = ctx.session || {};\n    ctx.session.adminCategoryAction = 'edit:' + i;\n    await ctx.reply('✏️ Escribe el nuevo nombre para: ' + lista[i] + '\\n\\n/cancel para cancelar.');\n    await ctx.answerCbQuery();\n  });\n\n  bot.action('cat_add', async ctx => {
+  bot.action(/^cat_edit_(\\d+)$/, async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
+    const i = Number(ctx.match[1]);
+    const ref = db.collection('config').doc('categorias');
+    const d = await ref.get();
+    const lista = d.exists && Array.isArray(d.data().lista) ? [...d.data().lista] : [];
+    if (!lista[i]) return ctx.answerCbQuery('Categoría no encontrada', { show_alert: true });
+    ctx.session = ctx.session || {};
+    ctx.session.adminCategoryAction = 'edit:' + i;
+    await ctx.reply('✏️ Escribe el nuevo nombre para: ' + lista[i] + '\\n\\n/cancel para cancelar.');
+    await ctx.answerCbQuery();
+  });
+
+  bot.action('cat_add', async ctx => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     ctx.session = ctx.session || {};
     ctx.session.adminCategoryAction = 'add';
