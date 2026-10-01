@@ -61,7 +61,7 @@ function register(bot) {
   bot.action('adm_stats', async ctx => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
-    const [usuarios, chats, categorias] = await Promise.all([
+    const [usuarios, chats, publicaciones] = await Promise.all([
       countCollection('usuarios'),
       countCollection('chats'),
       countCollection('publicaciones')
@@ -101,7 +101,6 @@ function register(bot) {
       rows.push([Markup.button.callback('👤 ' + name, 'admin_user_' + doc.id, { style: 'secondary' })]);
     }
     rows.push(
-      [Markup.button.callback('🔍 BUSCAR USUARIO', 'gestion_buscar')],
       [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
     );
     await ctx.editMessageText('👥 USUARIOS\n\nMostrando hasta 20 usuarios:', Markup.inlineKeyboard(rows));
@@ -192,8 +191,7 @@ function register(bot) {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     await ctx.editMessageText('⚙️ CONFIGURACIÓN\n\nSelecciona una sección:', Markup.inlineKeyboard([
       [Markup.button.callback('📢 CANALES / LOG / ORIGEN', 'adm_logorigen', { style: 'primary' })],
-      [Markup.button.callback('💬 BIENVENIDA', 'admin_edit_welcome', { style: 'success' })],
-      [Markup.button.callback('🔘 BOTONERA', 'admin_difusor', { style: 'success' })],
+      [Markup.button.callback('🩺 DIAGNÓSTICO', 'adm_diagnostic', { style: 'secondary' })],
       [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
     ]));
     await ctx.answerCbQuery();
