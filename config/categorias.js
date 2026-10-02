@@ -18,6 +18,18 @@ function normalizar(lista) {
   return [...new Set(lista.map(v => String(v || '').trim()).filter(Boolean))];
 }
 
+function migrarCategorias(lista) {
+  const salida = normalizar(lista);
+  const cg = '💰(𝐂 & 𝐆)';
+  const bots = '🤖 LOS MEJORES BOTS';
+  if (!salida.includes(cg)) {
+    const posBots = salida.indexOf(bots);
+    if (posBots >= 0) salida.splice(posBots, 0, cg);
+    else salida.push(cg);
+  }
+  return salida;
+}
+
 async function getCategorias(options = {}) {
   if (!options.force && CACHE.lista) return [...CACHE.lista];
   if (!db) {
@@ -29,9 +41,13 @@ async function getCategorias(options = {}) {
     const snap = await ref.get();
     if (!snap.exists || !Array.isArray(snap.data().lista) || !snap.data().lista.length) {
       CACHE.lista = [...CATEGORIAS_DEFAULT];
-      await ref.set({ lista: CACHE.lista, version: 2, updatedAt: new Date() }, { merge: true });
+      await ref.set({ lista: CACHE.lista, version: 3, updatedAt: new Date() }, { merge: true });
     } else {
-      CACHE.lista = normalizar(snap.data().lista);
+      const original = normalizar(snap.data().lista);
+      CACHE.lista = migrarCategorias(original);
+      if (CACHE.lista.join('\n') !== original.join('\n')) {
+        await ref.set({ lista: CACHE.lista, version: 3, updatedAt: new Date() }, { merge: true });
+      }
     }
   } catch (error) {
     console.error('❌ Error leyendo categorías:', error.message);
@@ -44,15 +60,11 @@ async function guardarCategorias(lista) {
   const limpia = normalizar(lista);
   if (!limpia.length) throw new Error('Debe existir al menos una categoría.');
   CACHE.lista = limpia;
-  if (db) await db.collection('config').doc('categorias').set({
-    lista: limpia, version: 2, updatedAt: new Date()
-  }, { merge: true });
+  if (db) await db.collection('config').doc('categorias').set({ lista: limpia, version: 3, updatedAt: new Date() }, { merge: true });
   return [...CACHE.lista];
 }
 
-function limpiarCacheCategorias() {
-  CACHE.lista = null;
-}
+function limpiarCacheCategorias() { CACHE.lista = null; }
 
 async function agregarCategoria(nombre) {
   const lista = await getCategorias();
@@ -65,8 +77,7 @@ async function agregarCategoria(nombre) {
 
 async function editarCategoria(index, nombre) {
   const lista = await getCategorias();
-  const i = Number(index);
-  const valor = String(nombre || '').trim();
+  const i = Number(index), valor = String(nombre || '').trim();
   if (!Number.isInteger(i) || !lista[i]) throw new Error('Categoría no encontrada.');
   if (!valor) throw new Error('Nombre vacío.');
   if (lista.some((c, n) => n !== i && c.toLowerCase() === valor.toLowerCase())) throw new Error('La categoría ya existe.');
@@ -85,8 +96,7 @@ async function eliminarCategoria(index) {
 
 async function moverCategoria(index, direccion) {
   const lista = await getCategorias();
-  const i = Number(index);
-  const destino = i + Number(direccion);
+  const i = Number(index), destino = i + Number(direccion);
   if (!Number.isInteger(i) || !lista[i] || destino < 0 || destino >= lista.length) return lista;
   [lista[i], lista[destino]] = [lista[destino], lista[i]];
   return guardarCategorias(lista);
