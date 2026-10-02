@@ -115,16 +115,16 @@ function setupAdminNavigation(bot) {
 
   menu('adm_chats_menu', '💬 CHATS\\n\\nGestiona grupos y canales.', [
     [Markup.button.callback('📺 CANALES / LOG / ORIGEN', 'adm_logorigen')],
-    [Markup.button.callback('📋 VER CHATS', 'admin_gestionar')],
-    [Markup.button.callback('⏳ PENDIENTES', 'admin_pendientes')],
-    [Markup.button.callback('🚫 CAÍDOS / DESACTIVADOS', 'admin_baneados')]
+    [Markup.button.callback('📋 LISTA G/C', 'super_chats')],
+    [Markup.button.callback('⏳ PENDIENTES', 'super_pending')],
+    [Markup.button.callback('🚫 CAÍDOS / DESACTIVADOS', 'super_banned_chats')]
   ]);
 
   menu('adm_users_menu', '👥 USUARIOS\\n\\nUsuarios, búsqueda y comunicación.', [
-    [Markup.button.callback('📋 LISTA DE USUARIOS', 'adm_lista_users')],
-    [Markup.button.callback('🔍 BUSCAR', 'gestion_buscar')],
-    [Markup.button.callback('🚫 BANEADOS', 'admin_baneados')],
-    [Markup.button.callback('📢 BROADCAST', 'adm_broadcast')]
+    [Markup.button.callback('📋 LISTA DE USUARIOS', 'super_users')],
+    [Markup.button.callback('🔍 BUSCAR', 'super_user_search')],
+    [Markup.button.callback('🚫 BANEADOS', 'super_banned')],
+    [Markup.button.callback('📢 BROADCAST', 'super_broadcast')]
   ]);
 
   menu('adm_publicaciones_menu', '📢 PUBLICACIONES\\n\\nContenido publicado y gestión.', [
@@ -150,8 +150,8 @@ function setupAdminNavigation(bot) {
   ]);
 
   menu('adm_admins_menu', '👑 ADMINISTRADORES\\n\\nControl de administradores y permisos.', [
-    [Markup.button.callback('👑 VER ADMINISTRADORES', 'adm_gestion')],
-    [Markup.button.callback('🔐 PERMISOS', 'adm_gestion')]
+    [Markup.button.callback('👮 GESTIÓN DE ADMINS', 'super_admins')],
+    [Markup.button.callback('🔐 PERMISOS', 'super_admins')]
   ]);
 
   menu('adm_storage_menu', '🗄️ ALMACENAMIENTO\\n\\nCaché, respaldo y estado de datos.', [
@@ -161,10 +161,10 @@ function setupAdminNavigation(bot) {
   ]);
 
   menu('adm_tools_menu', '🧰 HERRAMIENTAS\\n\\nOperaciones de mantenimiento y verificación.', [
-    [Markup.button.callback('🔍 BUSCAR', 'gestion_buscar')],
+    [Markup.button.callback('🔍 BUSCAR', 'super_user_search')],
     [Markup.button.callback('🔗 ACTUALIZAR ENLACES', 'actualizar_links_now')],
     [Markup.button.callback('💀 REVISAR CAÍDOS', 'revisar_caidos_now')],
-    [Markup.button.callback('🔍 VERIFICAR ROTOS', 'verificar_rotos_now')],
+    [Markup.button.callback('🔍 VERIFICAR ROTOS', 'super_verify_links')],
     [Markup.button.callback('🛡️ SEGURIDAD', 'super_security')],
     [Markup.button.callback('🧹 MANTENIMIENTO', 'adm_maintenance')]
   ]);
