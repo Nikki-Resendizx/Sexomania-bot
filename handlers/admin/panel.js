@@ -9,7 +9,7 @@ const panelKeyboard = () => Markup.inlineKeyboard([
   [Markup.button.callback('💬 CHATS', 'adm_chats_menu'), Markup.button.callback('👥 USUARIOS', 'adm_users_menu')],
   [Markup.button.callback('📢 PUBLICACIONES', 'adm_publicaciones_menu'), Markup.button.callback('📝 LISTAS', 'adm_lists_menu')],
   [Markup.button.callback('🔘 BOTONERA', 'adm_button_menu'), Markup.button.callback('🤖 BOT', 'adm_bot_menu')],
-  [Markup.button.callback('👑 ADMINISTRADORES', 'adm_admins_menu'), Markup.button.callback('📊 ESTADÍSTICAS', 'adm_stats')],
+  [Markup.button.callback('👑 ADMINISTRADORES', 'adm_admins_menu'), Markup.button.callback('📊 ESTADÍSTICAS', 'super_stats')],
   [Markup.button.callback('🗄️ ALMACENAMIENTO', 'adm_storage_menu'), Markup.button.callback('🧰 HERRAMIENTAS', 'adm_tools_menu')],
   [Markup.button.callback('❌ CERRAR', 'adm_close')]
 ]);
@@ -156,7 +156,7 @@ function setupAdminNavigation(bot) {
 
   menu('adm_storage_menu', '🗄️ ALMACENAMIENTO\\n\\nCaché, respaldo y estado de datos.', [
     [Markup.button.callback('🧹 LIMPIAR CACHÉ', 'adm_cache_clear')],
-    [Markup.button.callback('📦 BACKUP', 'adm_backup')],
+    [Markup.button.callback('📦 BACKUP', 'super_backup')],
     [Markup.button.callback('🩺 ESTADO / DIAGNÓSTICO', 'adm_diagnostic')]
   ]);
 
@@ -165,6 +165,7 @@ function setupAdminNavigation(bot) {
     [Markup.button.callback('🔗 ACTUALIZAR ENLACES', 'actualizar_links_now')],
     [Markup.button.callback('💀 REVISAR CAÍDOS', 'revisar_caidos_now')],
     [Markup.button.callback('🔍 VERIFICAR ROTOS', 'verificar_rotos_now')],
+    [Markup.button.callback('🛡️ SEGURIDAD', 'super_security')],
     [Markup.button.callback('🧹 MANTENIMIENTO', 'adm_maintenance')]
   ]);
 }
