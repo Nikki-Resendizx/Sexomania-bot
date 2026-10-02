@@ -163,9 +163,9 @@ function register(bot) {
     const doc = db ? await db.collection('config').doc('bot').get() : null;
     const data = doc && doc.exists ? doc.data() : {};
     await ctx.editMessageText(
-      '🖼️ BIENVENIDA\\n\\n' +
-      'Foto: ' + (data.welcomePhoto ? '✅ Configurada' : '❌ No configurada') + '\\n' +
-      'Texto: ' + (data.welcomeText ? '✅ Personalizado' : '⚙️ Predeterminado') + '\\n\\n' +
+      '🖼️ BIENVENIDA\n\n' +
+      'Foto: ' + (data.welcomePhoto ? '✅ Configurada' : '❌ No configurada') + '\n' +
+      'Texto: ' + (data.welcomeText ? '✅ Personalizado' : '⚙️ Predeterminado') + '\n\n' +
       'Selecciona qué deseas modificar:',
       Markup.inlineKeyboard([
         [Markup.button.callback('📝 CAMBIAR TEXTO', 'adm_welcome_text')],
@@ -180,7 +180,7 @@ function register(bot) {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     ctx.session = ctx.session || {};
     ctx.session.adminWelcomeText = true;
-    await ctx.reply('📝 Envía el nuevo texto de bienvenida. Puedes usar HTML de Telegram y {nombre} para insertar el nombre del usuario.\\n\\n/cancel para cancelar.');
+    await ctx.reply('📝 Envía el nuevo texto de bienvenida. Puedes usar HTML de Telegram y {nombre} para insertar el nombre del usuario.\n\n/cancel para cancelar.');
     await ctx.answerCbQuery();
   });
 
@@ -188,7 +188,7 @@ function register(bot) {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     ctx.session = ctx.session || {};
     ctx.session.adminWelcomePhoto = true;
-    await ctx.reply('🖼️ Envía la nueva foto de bienvenida.\\n\\n/cancel para cancelar.');
+    await ctx.reply('🖼️ Envía la nueva foto de bienvenida.\n\n/cancel para cancelar.');
     await ctx.answerCbQuery();
   });
 
