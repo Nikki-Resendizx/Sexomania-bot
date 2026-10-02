@@ -10,6 +10,10 @@ function guardUser(ctx) {
   return Boolean(ctx.from?.id);
 }
 
+function escapeHtmlStore(value) {
+  return String(value || '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+}
+
 async function renderUserCategories(ctx, edit = false) {
   const categorias = await getWebAppSections();
   const rows = categorias.map((cat, i) => [
@@ -188,6 +192,21 @@ function setupUserHandler(bot) {
         autoBaneado: false,
         isPrivate: !username
       }, { merge: true });
+
+      try {
+        await sendToStore(
+          ctx.telegram,
+          'categorias',
+          '📥 <b>NUEVA SOLICITUD DE GRUPO/CANAL</b>\\n\\n' +
+          '🆔 ID: <code>' + chatId + '</code>\\n' +
+          '📺 Nombre: ' + escapeHtmlStore(title) + '\\n' +
+          '👤 Usuario: <code>' + ctx.from.id + '</code>\\n' +
+          '📌 Estado: <b>PENDIENTE</b>',
+          { parse_mode: 'HTML' }
+        );
+      } catch (storeError) {
+        console.error('❌ Store solicitud:', storeError.message);
+      }
 
       ctx.session.userAddChat = null;
       const categorias = await getCategorias();
