@@ -1,5 +1,53 @@
 require('dotenv').config();
 
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+const WEB_PORT = Number(process.env.PORT || 3000);
+const WEB_ROOT = path.join(__dirname, 'web');
+
+function sendHttp(res, status, contentType, body) {
+  res.writeHead(status, {
+    'Content-Type': contentType,
+    'Cache-Control': 'no-store',
+    'Access-Control-Allow-Origin': '*'
+  });
+  res.end(body);
+}
+
+const webServer = http.createServer((req, res) => {
+  const url = new URL(req.url || '/', 'http://localhost');
+  const route = url.pathname;
+
+  if (route === '/health' || route === '/api/health') {
+    return sendHttp(res, 200, 'application/json; charset=utf-8', JSON.stringify({
+      ok: true, service: 'SEXOMANIA V11', bot: 'running', timestamp: new Date().toISOString()
+    }));
+  }
+
+  if (route === '/api/status') {
+    return sendHttp(res, 200, 'application/json; charset=utf-8', JSON.stringify({
+      ok: true, name: 'SEXOMANIA V11', webapp: true, port: WEB_PORT, timestamp: new Date().toISOString()
+    }));
+  }
+
+  const requested = route === '/' ? '/index.html' : route;
+  const filePath = path.normalize(path.join(WEB_ROOT, requested));
+  if (!filePath.startsWith(WEB_ROOT)) return sendHttp(res, 403, 'text/plain; charset=utf-8', 'Forbidden');
+
+  fs.readFile(filePath, (error, data) => {
+    if (error) return sendHttp(res, 404, 'text/plain; charset=utf-8', 'Not found');
+    const ext = path.extname(filePath);
+    const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8' };
+    sendHttp(res, 200, types[ext] || 'application/octet-stream', data);
+  });
+});
+
+webServer.listen(WEB_PORT, '0.0.0.0', () => {
+  console.log('🌐 WebApp SEXOMANIA activa en puerto ' + WEB_PORT);
+});
+
 const { Telegraf, session, Markup } = require('telegraf');
 const { isAdmin } = require('./config/constantes');
 
