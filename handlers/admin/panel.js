@@ -5,13 +5,18 @@ const { getCategorias, agregarCategoria, editarCategoria, eliminarCategoria, mov
 
 const guard = ctx => isAdmin(ctx.from && ctx.from.id);
 const panelKeyboard = () => Markup.inlineKeyboard([
-  [Markup.button.callback('👮 ADMINS', 'adm_gestion'), Markup.button.callback('📊 ESTADÍSTICAS', 'adm_stats')],
-  [Markup.button.callback('👥 USUARIOS', 'adm_lista_users'), Markup.button.callback('📁 CATEGORÍAS', 'admin_cats')],
-  [Markup.button.callback('📢 PUBLICACIONES', 'admin_publicaciones')],
-  [Markup.button.callback('📺 CANALES / LOG / ORIGEN', 'adm_logorigen')],
-      [Markup.button.callback('🖼️ BIENVENIDA', 'adm_welcome')],
-  [Markup.button.callback('⚙️ CONFIGURACIÓN', 'adm_config'), Markup.button.callback('🧹 MANTENIMIENTO', 'adm_maintenance')],
+  [Markup.button.callback('👋 BIENVENIDA', 'adm_welcome'), Markup.button.callback('📁 CATEGORÍAS', 'admin_cats_menu')],
+  [Markup.button.callback('💬 CHATS', 'adm_chats_menu'), Markup.button.callback('👥 USUARIOS', 'adm_users_menu')],
+  [Markup.button.callback('📢 PUBLICACIONES', 'adm_publicaciones_menu'), Markup.button.callback('📝 LISTAS', 'adm_lists_menu')],
+  [Markup.button.callback('🔘 BOTONERA', 'adm_button_menu'), Markup.button.callback('🤖 BOT', 'adm_bot_menu')],
+  [Markup.button.callback('👑 ADMINISTRADORES', 'adm_admins_menu'), Markup.button.callback('📊 ESTADÍSTICAS', 'adm_stats')],
+  [Markup.button.callback('🗄️ ALMACENAMIENTO', 'adm_storage_menu'), Markup.button.callback('🧰 HERRAMIENTAS', 'adm_tools_menu')],
   [Markup.button.callback('❌ CERRAR', 'adm_close')]
+]);
+
+const sectionKeyboard = (rows) => Markup.inlineKeyboard([
+  ...rows,
+  [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
 ]);
 
 function setupCategories(bot) {
@@ -93,7 +98,79 @@ function setupCategories(bot) {
   });
 }
 
+
+function setupAdminNavigation(bot) {
+  const menu = (id, title, rows) => {
+    bot.action(id, async ctx => {
+      if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+      await ctx.editMessageText(title, sectionKeyboard(rows));
+      await ctx.answerCbQuery();
+    });
+  };
+
+  menu('admin_cats_menu', '📁 CATEGORÍAS\\n\\nGestiona las categorías y su orden.', [
+    [Markup.button.callback('📋 VER / EDITAR', 'admin_cats')],
+    [Markup.button.callback('➕ AGREGAR', 'cat_add')]
+  ]);
+
+  menu('adm_chats_menu', '💬 CHATS\\n\\nGestiona grupos y canales.', [
+    [Markup.button.callback('📺 CANALES / LOG / ORIGEN', 'adm_logorigen')],
+    [Markup.button.callback('📋 VER CHATS', 'admin_gestionar')],
+    [Markup.button.callback('⏳ PENDIENTES', 'admin_pendientes')],
+    [Markup.button.callback('🚫 CAÍDOS / DESACTIVADOS', 'admin_baneados')]
+  ]);
+
+  menu('adm_users_menu', '👥 USUARIOS\\n\\nUsuarios, búsqueda y comunicación.', [
+    [Markup.button.callback('📋 LISTA DE USUARIOS', 'adm_lista_users')],
+    [Markup.button.callback('🔍 BUSCAR', 'gestion_buscar')],
+    [Markup.button.callback('🚫 BANEADOS', 'admin_baneados')],
+    [Markup.button.callback('📢 BROADCAST', 'adm_broadcast')]
+  ]);
+
+  menu('adm_publicaciones_menu', '📢 PUBLICACIONES\\n\\nContenido publicado y gestión.', [
+    [Markup.button.callback('📢 GESTIONAR PUBLICACIONES', 'admin_publicaciones')],
+    [Markup.button.callback('👁️ BORRADORES', 'dif_ver_borrador')]
+  ]);
+
+  menu('adm_lists_menu', '📝 LISTAS\\n\\nCreación, revisión y publicación.', [
+    [Markup.button.callback('📝 CREAR / EDITAR LISTA', 'dif_crear_lista')],
+    [Markup.button.callback('👁️ VISTA PREVIA', 'dif_ver_borrador')],
+    [Markup.button.callback('📢 PUBLICAR LISTAS', 'publicar_listas_now')]
+  ]);
+
+  menu('adm_button_menu', '🔘 BOTONERA\\n\\nConfiguración de botones y estilos.', [
+    [Markup.button.callback('⚙️ CONFIGURAR BOTONERA', 'admin_difusor')],
+    [Markup.button.callback('👁️ VISTA PREVIA', 'dif_ver_borrador')]
+  ]);
+
+  menu('adm_bot_menu', '🤖 BOT\\n\\nConfiguración general del bot.', [
+    [Markup.button.callback('👋 BIENVENIDA', 'adm_welcome')],
+    [Markup.button.callback('⚙️ CONFIGURACIÓN', 'adm_config')],
+    [Markup.button.callback('🩺 DIAGNÓSTICO', 'adm_diagnostic')]
+  ]);
+
+  menu('adm_admins_menu', '👑 ADMINISTRADORES\\n\\nControl de administradores y permisos.', [
+    [Markup.button.callback('👑 VER ADMINISTRADORES', 'adm_gestion')],
+    [Markup.button.callback('🔐 PERMISOS', 'adm_gestion')]
+  ]);
+
+  menu('adm_storage_menu', '🗄️ ALMACENAMIENTO\\n\\nCaché, respaldo y estado de datos.', [
+    [Markup.button.callback('🧹 LIMPIAR CACHÉ', 'adm_cache_clear')],
+    [Markup.button.callback('📦 BACKUP', 'adm_backup')],
+    [Markup.button.callback('🩺 ESTADO / DIAGNÓSTICO', 'adm_diagnostic')]
+  ]);
+
+  menu('adm_tools_menu', '🧰 HERRAMIENTAS\\n\\nOperaciones de mantenimiento y verificación.', [
+    [Markup.button.callback('🔍 BUSCAR', 'gestion_buscar')],
+    [Markup.button.callback('🔗 ACTUALIZAR ENLACES', 'actualizar_links_now')],
+    [Markup.button.callback('💀 REVISAR CAÍDOS', 'revisar_caidos_now')],
+    [Markup.button.callback('🔍 VERIFICAR ROTOS', 'verificar_rotos_now')],
+    [Markup.button.callback('🧹 MANTENIMIENTO', 'adm_maintenance')]
+  ]);
+}
+
 function register(bot) {
+  setupAdminNavigation(bot);
   bot.command('admin', async ctx => {
     if (!guard(ctx)) return ctx.reply('⛔ Solo administradores.');
     await ctx.reply('⚙️ PANEL DE ADMINISTRACIÓN\n\nSelecciona un módulo:', panelKeyboard());
