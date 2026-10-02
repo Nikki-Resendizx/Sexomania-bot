@@ -182,6 +182,29 @@ bot.start(async ctx => {
   }
 });
 
+bot.action('add_group_channel', async ctx => {
+  await ctx.editMessageText('👥 ✚ GRUPO / CANAL\n\nSelecciona dónde quieres agregar SEXOMANIA:', Markup.inlineKeyboard([
+    [{ text: '👥 AGREGAR A GRUPO', url: ADD_GROUP_URL, style: 'primary' }],
+    [{ text: '📣 AGREGAR A CANAL', url: ADD_CHANNEL_URL, style: 'success' }],
+    [{ text: '⬅️ VOLVER', callback_data: 'start_menu', style: 'danger' }]
+  ]));
+  await ctx.answerCbQuery();
+});
+
+bot.action('start_menu', async ctx => {
+  const nombre = ctx.from?.first_name || 'bebé';
+  const foto = await getFotoBienvenida();
+  const keyboard = getWelcomeKeyboard();
+  const caption = await getWelcomeText(nombre, ctx.from?.id);
+  try {
+    if (foto) await ctx.editMessageMedia({ type: 'photo', media: foto, caption, parse_mode: 'HTML' }, keyboard);
+    else await ctx.editMessageText(caption, { parse_mode: 'HTML', reply_markup: keyboard.reply_markup });
+  } catch {
+    try { await ctx.reply(caption, { parse_mode: 'HTML', reply_markup: keyboard.reply_markup }); } catch {}
+  }
+  await ctx.answerCbQuery();
+});
+
 bot.command('cancel', async ctx => {
   if (ctx.session) ['esperandoCanal','cambiandoEnlace','cambiandoNombre','adminCategoryAction','publicacion','userAddChat','adminWelcomeText','adminWelcomePhoto'].forEach(k => delete ctx.session[k]);
   await ctx.reply('✅ Operación cancelada.');
