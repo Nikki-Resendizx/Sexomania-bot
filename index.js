@@ -260,10 +260,6 @@ console.log('✅ Handlers cargados. Seguridad y panel activos.');
 
 ensureStoreTopics(bot)
   .then(() => bot.launch())
-  .catch(error => {
-    console.error('❌ No se pudo preparar el Telegram Store:', error.message);
-    process.exitCode = 1;
-  });
   .then(() => console.log('🔥 SEXOMANIA V11 encendido.'))
   .catch(error => {
     console.error('❌ No se pudo iniciar el bot:', error);
