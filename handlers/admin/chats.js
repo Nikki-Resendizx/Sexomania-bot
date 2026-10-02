@@ -12,7 +12,7 @@ function setupChatsHandler(bot) {
   bot.command('info', async (ctx) => {
     if (!guard(ctx)) return ctx.reply('⛔ Solo administradores.');
     if (!db) return ctx.reply('❌ Base de datos no configurada.');
-    let args = (ctx.message.text || '').trim().split(/\\s+/);
+    let args = (ctx.message.text || '').trim().split(/\s+/);
     let chatId = args[1] || ctx.message.reply_to_message?.forward_from_chat?.id || ctx.message.reply_to_message?.forward_origin?.chat?.id;
     if (!chatId) return ctx.reply('Uso: /info <ID del chat> o responde a un mensaje del canal/grupo.');
     if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
@@ -71,7 +71,7 @@ function setupChatsHandler(bot) {
     await ctx.answerCbQuery();
   });
 
-  bot.action(/set_cat_(-?\\d+)_(\\d+)/, async (ctx) => {
+  bot.action(/set_cat_(-?\d+)_(\d+)/, async (ctx) => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     let chatId = ctx.match[1];
     if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
@@ -122,6 +122,7 @@ function setupChatsHandler(bot) {
   bot.action(/detalles_chat_(.+)/, async (ctx) => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     let chatId = ctx.match[1];
+    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
     let doc = await db.collection('chats').doc(chatId).get();
     if (!doc.exists) return ctx.answerCbQuery('No existe');
     let data = doc.data();
