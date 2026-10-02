@@ -98,54 +98,28 @@ bot.use(async (ctx, next) => {
 });
 
 async function registrarUsuario(ctx) {
-  const { db } = require('./config/firebase');
-  if (!db || !ctx.from || !ctx.from.id) return;
+  if (!ctx.from || !ctx.from.id) return;
+
   const user = ctx.from;
-  const ref = db.collection('usuarios').doc(String(user.id));
-  const payload = {
-    id: user.id,
-    first_name: user.first_name || '',
-    last_name: user.last_name || '',
-    username: user.username || null,
-    language_code: user.language_code || null,
-    esAdmin: isAdmin(user.id),
-    estado: 'activo',
-    baneado: false,
-    ultimaActividad: new Date()
-  };
+  const nombre = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Sin nombre';
+  const username = user.username ? '@' + user.username : 'Sin username';
+
+  const mensaje = [
+    '👤 <b>REGISTRO DE USUARIO</b>',
+    '',
+    '🆔 ID: <code>' + user.id + '</code>',
+    '👤 Nombre: ' + escapeHtml(nombre),
+    '🔗 Username: ' + escapeHtml(username),
+    '🌐 Idioma: ' + escapeHtml(user.language_code || 'No indicado'),
+    '👑 Admin: ' + (isAdmin(user.id) ? 'Sí' : 'No'),
+    '',
+    '📅 Registro: ' + new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })
+  ].join('\\n');
+
   try {
-    const snap = await ref.get();
-    const esNuevo = !snap.exists;
-    if (esNuevo) {
-      payload.fechaIngreso = new Date();
-      payload.creado = new Date();
-      payload.chatsRegistrados = 0;
-    }
-    await ref.set(payload, { merge: true });
-
-    if (esNuevo) {
-      const nombre = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Sin nombre';
-      const username = user.username ? '@' + user.username : 'Sin username';
-      const mensaje = [
-        '👤 <b>NUEVO USUARIO</b>',
-        '',
-        '🆔 ID: <code>' + user.id + '</code>',
-        '👤 Nombre: ' + escapeHtml(nombre),
-        '🔗 Username: ' + escapeHtml(username),
-        '🌐 Idioma: ' + escapeHtml(user.language_code || 'No indicado'),
-        '👑 Admin: ' + (isAdmin(user.id) ? 'Sí' : 'No'),
-        '',
-        '📅 Ingreso: ' + new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })
-      ].join('\\n');
-
-      try {
-        await sendToStore(ctx.telegram, 'usuarios', mensaje, { parse_mode: 'HTML' });
-      } catch (storeError) {
-        console.error('❌ Error enviando usuario al Telegram Store:', storeError.message);
-      }
-    }
-  } catch (error) {
-    console.error('❌ Error registrando usuario:', error.message);
+    await sendToStore(ctx.telegram, 'usuarios', mensaje, { parse_mode: 'HTML' });
+  } catch (storeError) {
+    console.error('❌ Error registrando usuario en Telegram Store:', storeError.message);
   }
 }
 
