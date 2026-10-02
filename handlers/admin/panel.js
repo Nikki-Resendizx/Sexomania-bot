@@ -5,12 +5,12 @@ const { getCategorias, agregarCategoria, editarCategoria, eliminarCategoria, mov
 
 const guard = ctx => isAdmin(ctx.from && ctx.from.id);
 const panelKeyboard = () => Markup.inlineKeyboard([
-  [Markup.button.callback('👮 ADMINS', 'adm_gestion', { style: 'primary' }), Markup.button.callback('📊 ESTADÍSTICAS', 'adm_stats', { style: 'primary' })],
-  [Markup.button.callback('👥 USUARIOS', 'adm_lista_users', { style: 'success' }), Markup.button.callback('📁 CATEGORÍAS', 'admin_cats', { style: 'primary' })],
-  [Markup.button.callback('📢 PUBLICACIONES', 'admin_publicaciones', { style: 'success' })],
-  [Markup.button.callback('📺 CANALES / LOG / ORIGEN', 'adm_logorigen', { style: 'primary' })],
-  [Markup.button.callback('⚙️ CONFIGURACIÓN', 'adm_config', { style: 'secondary' }), Markup.button.callback('🧹 MANTENIMIENTO', 'adm_maintenance', { style: 'danger' })],
-  [Markup.button.callback('❌ CERRAR', 'adm_close', { style: 'danger' })]
+  [Markup.button.callback('👮 ADMINS', 'adm_gestion'), Markup.button.callback('📊 ESTADÍSTICAS', 'adm_stats')],
+  [Markup.button.callback('👥 USUARIOS', 'adm_lista_users'), Markup.button.callback('📁 CATEGORÍAS', 'admin_cats')],
+  [Markup.button.callback('📢 PUBLICACIONES', 'admin_publicaciones')],
+  [Markup.button.callback('📺 CANALES / LOG / ORIGEN', 'adm_logorigen')],
+  [Markup.button.callback('⚙️ CONFIGURACIÓN', 'adm_config'), Markup.button.callback('🧹 MANTENIMIENTO', 'adm_maintenance')],
+  [Markup.button.callback('❌ CERRAR', 'adm_close')]
 ]);
 
 function setupCategories(bot) {
@@ -19,11 +19,11 @@ function setupCategories(bot) {
     const lista = await getCategorias({ force: true });
     const rows = lista.map((cat, i) => [
       Markup.button.callback('✏️ ' + String(cat).slice(0, 25), 'cat_edit_' + i),
-      Markup.button.callback('🗑️', 'cat_del_' + i, { style: 'danger' }),
+      Markup.button.callback('🗑️', 'cat_del_' + i),
       Markup.button.callback('⬆️', 'cat_up_' + i),
       Markup.button.callback('⬇️', 'cat_down_' + i)
     ]);
-    rows.push([Markup.button.callback('➕ AGREGAR', 'cat_add', { style: 'success' })]);
+    rows.push([Markup.button.callback('➕ AGREGAR', 'cat_add')]);
     rows.push([Markup.button.callback('⬅️ VOLVER', 'admin_back')]);
     await ctx.editMessageText('📁 CATEGORÍAS\n\n' + lista.map((c, i) => (i + 1) + '. ' + c).join('\n'), Markup.inlineKeyboard(rows));
     await ctx.answerCbQuery();
@@ -160,7 +160,7 @@ function register(bot) {
   bot.action('adm_maintenance', async ctx => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     await ctx.editMessageText('🧹 MANTENIMIENTO\n\nHerramientas:', Markup.inlineKeyboard([
-      [Markup.button.callback('🧹 LIMPIAR CACHÉ', 'adm_cache_clear', { style: 'danger' })],
+      [Markup.button.callback('🧹 LIMPIAR CACHÉ', 'adm_cache_clear')],
       [Markup.button.callback('🩺 DIAGNÓSTICO', 'adm_diagnostic')],
       [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
     ]));
