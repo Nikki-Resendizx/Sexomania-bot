@@ -25,7 +25,7 @@ function prepararFotoTelegram(foto) {
   const value = foto.trim();
   if (!value) return null;
 
-  if (/^https?:\\/\\//i.test(value) || /^AgAC/i.test(value)) return value;
+  if (/^https?:\/\//i.test(value) || /^AgAC/i.test(value)) return value;
 
   const match = value.match(/^data:([^;]+);base64,(.+)$/i);
   if (match) {
@@ -36,9 +36,9 @@ function prepararFotoTelegram(foto) {
   }
 
   // También permitimos base64 puro.
-  if (/^[A-Za-z0-9+/=\\s]+$/.test(value) && value.length > 100) {
+  if (/^[A-Za-z0-9+/=\s]+$/.test(value) && value.length > 100) {
     try {
-      return { source: Buffer.from(value.replace(/\\s/g, ''), 'base64'), filename: 'webapp-photo' };
+      return { source: Buffer.from(value.replace(/\s/g, ''), 'base64'), filename: 'webapp-photo' };
     } catch {}
   }
 
@@ -64,7 +64,7 @@ function crearCaptionWebApp(chat) {
     '👁️ <b>Visitas:</b> ' + Number(chat.clicks || 0),
     '',
     '📝 ' + desc
-  ].join('\\n');
+  ].join('\n');
 }
 
 module.exports = {
