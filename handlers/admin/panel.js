@@ -1,164 +1,41 @@
 const { Markup } = require('telegraf');
-const { db } = require('../../config/firebase');
-const { isAdmin, ADMIN_IDS } = require('../../config/constantes');
+const { db, isFirebaseReady } = require('../../config/firebase');
+const { isAdmin, ADMIN_IDS, CACHE_CANALES } = require('../../config/constantes');
+const { getCategorias, agregarCategoria, editarCategoria, eliminarCategoria, moverCategoria, limpiarCacheCategorias } = require('../../config/categorias');
 
-const guard = ctx => isAdmin(ctx.from?.id);
-
+const guard = ctx => isAdmin(ctx.from && ctx.from.id);
 const panelKeyboard = () => Markup.inlineKeyboard([
   [Markup.button.callback('👮 ADMINS', 'adm_gestion', { style: 'primary' }), Markup.button.callback('📊 ESTADÍSTICAS', 'adm_stats', { style: 'primary' })],
   [Markup.button.callback('👥 USUARIOS', 'adm_lista_users', { style: 'success' }), Markup.button.callback('📁 CATEGORÍAS', 'admin_cats', { style: 'primary' })],
-  [Markup.button.callback('📢 CANALES / LOG / ORIGEN', 'adm_logorigen', { style: 'success' })],
+  [Markup.button.callback('📢 PUBLICACIONES', 'admin_publicaciones', { style: 'success' })],
+  [Markup.button.callback('📺 CANALES / LOG / ORIGEN', 'adm_logorigen', { style: 'primary' })],
   [Markup.button.callback('⚙️ CONFIGURACIÓN', 'adm_config', { style: 'secondary' }), Markup.button.callback('🧹 MANTENIMIENTO', 'adm_maintenance', { style: 'danger' })],
   [Markup.button.callback('❌ CERRAR', 'adm_close', { style: 'danger' })]
 ]);
 
-async function countCollection(name) {
-  if (!db) return 0;
-  try {
-    if (typeof db.collection(name).count === 'function') {
-      const snap = await db.collection(name).count().get();
-      return snap.data().count || 0;
-    }
-    const snap = await db.collection(name).get();
-    return snap.size;
-  } catch { return 0; }
-}
-
-function register(bot) {
-  bot.command('admin', async ctx => {
-    if (!guard(ctx)) return ctx.reply('⛔ Solo administradores.');
-    await ctx.reply('⚙️ PANEL DE ADMINISTRACIÓN\n\nSelecciona un módulo:', panelKeyboard());
-  });
-
-  bot.action('admin_back', async ctx => {
-    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    await ctx.editMessageText('⚙️ PANEL DE ADMINISTRACIÓN\n\nSelecciona un módulo:', panelKeyboard());
-    await ctx.answerCbQuery();
-  });
-
-  bot.action('adm_close', async ctx => {
-    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    try { await ctx.deleteMessage(); } catch { await ctx.editMessageText('✅ Panel cerrado.'); }
-    await ctx.answerCbQuery();
-  });
-
-  bot.action('adm_gestion', async ctx => {
-    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    const ids = ADMIN_IDS.join(', ') || 'Ninguno';
-    await ctx.editMessageText(
-      '👮 ADMINISTRADORES\n\n' +
-      'Administradores configurados mediante ADMIN_IDS:\n' +
-      ids + '\n\n' +
-      'Para cambios permanentes, actualiza ADMIN_IDS en el entorno del bot.',
-      Markup.inlineKeyboard([
-        [Markup.button.callback('🔄 ACTUALIZAR', 'adm_gestion')],
-        [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
-      ])
-    );
-    await ctx.answerCbQuery();
-  });
-
-  bot.action('adm_stats', async ctx => {
-    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
-    const [usuarios, chats, publicaciones] = await Promise.all([
-      countCollection('usuarios'),
-      countCollection('chats'),
-      countCollection('publicaciones')
-    ]);
-    let cats = 0;
-    try {
-      const d = await db.collection('config').doc('categorias').get();
-      cats = d.exists && Array.isArray(d.data().lista) ? d.data().lista.length : 0;
-    } catch {}
-    await ctx.editMessageText(
-      '📊 ESTADÍSTICAS\n\n' +
-      '👥 Usuarios: ' + usuarios + '\n' +
-      '📺 Canales / grupos: ' + chats + '\n' +
-      '📢 Publicaciones: ' + categorias + '\n' +
-      '📁 Categorías: ' + cats,
-      Markup.inlineKeyboard([
-        [Markup.button.callback('🔄 ACTUALIZAR', 'adm_stats')],
-        [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
-      ])
-    );
-    await ctx.answerCbQuery();
-  });
-
-  bot.action('adm_lista_users', async ctx => {
-    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
-    const snap = await db.collection('usuarios').limit(20).get();
-    if (snap.empty) {
-      return ctx.editMessageText('👥 USUARIOS\n\nNo hay usuarios registrados.', Markup.inlineKeyboard([
-        [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
-      ]));
-    }
-    const rows = [];
-    for (const doc of snap.docs) {
-      const u = doc.data() || {};
-      const name = String(u.nombre || u.first_name || u.username || doc.id).slice(0, 28);
-      rows.push([Markup.button.callback('👤 ' + name, 'admin_user_' + doc.id, { style: 'secondary' })]);
-    }
-    rows.push(
-      [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
-    );
-    await ctx.editMessageText('👥 USUARIOS\n\nMostrando hasta 20 usuarios:', Markup.inlineKeyboard(rows));
-    await ctx.answerCbQuery();
-  });
-
-  bot.action(/^admin_user_(.+)$/, async ctx => {
-    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
-    const id = ctx.match[1];
-    const doc = await db.collection('usuarios').doc(id).get();
-    if (!doc.exists) return ctx.answerCbQuery('Usuario no encontrado', { show_alert: true });
-    const u = doc.data() || {};
-    await ctx.editMessageText(
-      '👤 USUARIO\n\n' +
-      '🆔 ID: ' + id + '\n' +
-      '📝 Nombre: ' + (u.nombre || u.first_name || 'Sin nombre') + '\n' +
-      '👤 Username: ' + (u.username ? '@' + u.username : 'Sin username') + '\n' +
-      '⚙️ Estado: ' + (u.estado || 'activo'),
-      Markup.inlineKeyboard([
-        [Markup.button.callback('⬅️ VOLVER', 'adm_lista_users')]
-      ])
-    );
-    await ctx.answerCbQuery();
-  });
-
+function setupCategories(bot) {
   bot.action('admin_cats', async ctx => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
-    let lista = [];
-    try {
-      const d = await db.collection('config').doc('categorias').get();
-      lista = d.exists && Array.isArray(d.data().lista) ? d.data().lista : [];
-    } catch {}
-    const rows = lista.map((c, i) => [
-      Markup.button.callback('✏️ ' + String(c).slice(0, 28), 'cat_edit_' + i),
-      Markup.button.callback('🗑️', 'cat_del_' + i, { style: 'danger' })
+    const lista = await getCategorias({ force: true });
+    const rows = lista.map((cat, i) => [
+      Markup.button.callback('✏️ ' + String(cat).slice(0, 25), 'cat_edit_' + i),
+      Markup.button.callback('🗑️', 'cat_del_' + i, { style: 'danger' }),
+      Markup.button.callback('⬆️', 'cat_up_' + i),
+      Markup.button.callback('⬇️', 'cat_down_' + i)
     ]);
     rows.push([Markup.button.callback('➕ AGREGAR', 'cat_add', { style: 'success' })]);
     rows.push([Markup.button.callback('⬅️ VOLVER', 'admin_back')]);
-    await ctx.editMessageText(
-      '📁 CATEGORÍAS\n\n' + (lista.length ? lista.map((c,i) => (i+1) + '. ' + c).join('\n') : 'No hay categorías.'),
-      Markup.inlineKeyboard(rows)
-    );
+    await ctx.editMessageText('📁 CATEGORÍAS\n\n' + lista.map((c, i) => (i + 1) + '. ' + c).join('\n'), Markup.inlineKeyboard(rows));
     await ctx.answerCbQuery();
   });
 
-  bot.action(/^cat_edit_(\\d+)$/, async ctx => {
+  bot.action(/^cat_edit_(\d+)$/, async ctx => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
-    const i = Number(ctx.match[1]);
-    const ref = db.collection('config').doc('categorias');
-    const d = await ref.get();
-    const lista = d.exists && Array.isArray(d.data().lista) ? [...d.data().lista] : [];
+    const i = Number(ctx.match[1]), lista = await getCategorias();
     if (!lista[i]) return ctx.answerCbQuery('Categoría no encontrada', { show_alert: true });
     ctx.session = ctx.session || {};
     ctx.session.adminCategoryAction = 'edit:' + i;
-    await ctx.reply('✏️ Escribe el nuevo nombre para: ' + lista[i] + '\\n\\n/cancel para cancelar.');
+    await ctx.reply('✏️ Escribe el nuevo nombre para:\n' + lista[i] + '\n\n/cancel para cancelar.');
     await ctx.answerCbQuery();
   });
 
@@ -172,117 +49,137 @@ function register(bot) {
 
   bot.action(/^cat_del_(\d+)$/, async ctx => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
-    const i = Number(ctx.match[1]);
-    const ref = db.collection('config').doc('categorias');
-    const d = await ref.get();
-    const lista = d.exists && Array.isArray(d.data().lista) ? [...d.data().lista] : [];
-    if (!lista[i]) return ctx.answerCbQuery('Categoría no encontrada', { show_alert: true });
-    const eliminada = lista.splice(i, 1)[0];
-    await ref.set({ lista, updatedAt: new Date() }, { merge: true });
-    await ctx.answerCbQuery('Eliminada: ' + eliminada);
-    await ctx.editMessageText('📁 Categorías actualizadas.', Markup.inlineKeyboard([
+    try {
+      await eliminarCategoria(Number(ctx.match[1]));
+      await ctx.answerCbQuery('✅ Categoría eliminada');
+      await ctx.editMessageText('✅ Categoría eliminada.', Markup.inlineKeyboard([
+        [Markup.button.callback('📁 VER CATEGORÍAS', 'admin_cats')],
+        [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
+      ]));
+    } catch (e) { await ctx.answerCbQuery(e.message, { show_alert: true }); }
+  });
+
+  bot.action(/^cat_up_(\d+)$/, async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    await moverCategoria(Number(ctx.match[1]), -1);
+    await ctx.answerCbQuery('✅ Orden actualizado');
+    await ctx.editMessageText('🔄 Orden actualizado.', Markup.inlineKeyboard([
       [Markup.button.callback('📁 VER CATEGORÍAS', 'admin_cats')],
       [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
     ]));
   });
 
-  bot.action('adm_config', async ctx => {
+  bot.action(/^cat_down_(\d+)$/, async ctx => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    await ctx.editMessageText('⚙️ CONFIGURACIÓN\n\nSelecciona una sección:', Markup.inlineKeyboard([
-      [Markup.button.callback('📢 CANALES / LOG / ORIGEN', 'adm_logorigen', { style: 'primary' })],
-      [Markup.button.callback('🩺 DIAGNÓSTICO', 'adm_diagnostic', { style: 'secondary' })],
+    await moverCategoria(Number(ctx.match[1]), 1);
+    await ctx.answerCbQuery('✅ Orden actualizado');
+    await ctx.editMessageText('🔄 Orden actualizado.', Markup.inlineKeyboard([
+      [Markup.button.callback('📁 VER CATEGORÍAS', 'admin_cats')],
       [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
     ]));
-    await ctx.answerCbQuery();
-  });
-
-  bot.action('adm_maintenance', async ctx => {
-    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    await ctx.editMessageText('🧹 MANTENIMIENTO\n\nHerramientas seguras del bot:', Markup.inlineKeyboard([
-      [Markup.button.callback('🔄 RECARGAR CACHÉ', 'adm_cache_clear', { style: 'primary' })],
-      [Markup.button.callback('🩺 DIAGNÓSTICO', 'adm_diagnostic', { style: 'secondary' })],
-      [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
-    ]));
-    await ctx.answerCbQuery();
-  });
-
-  bot.action('adm_cache_clear', async ctx => {
-    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    try {
-      const constantes = require('../../config/constantes');
-      constantes.CACHE_CANALES.principal = null;
-      constantes.CACHE_CANALES.log = null;
-      constantes.CACHE_CANALES.origen = null;
-      constantes.CACHE_CANALES.registro_privado = null;
-      await ctx.answerCbQuery('✅ Caché limpiada');
-      await ctx.editMessageText('🧹 CACHÉ\n\n✅ Caché de configuración recargable limpiada.', Markup.inlineKeyboard([
-        [Markup.button.callback('⬅️ VOLVER', 'adm_maintenance')]
-      ]));
-    } catch (e) {
-      await ctx.answerCbQuery('Error al limpiar caché', { show_alert: true });
-    }
-  });
-
-  bot.action('adm_diagnostic', async ctx => {
-    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
-    const firebase = require('../../config/firebase');
-    await ctx.editMessageText(
-      '🩺 DIAGNÓSTICO\n\n' +
-      '🤖 Bot: ✅ Activo\n' +
-      '🗄️ Firebase: ' + (firebase.isFirebaseReady() ? '✅ Conectado' : '❌ No conectado') + '\n' +
-      '👮 Tu ID: ' + ctx.from.id + '\n' +
-      '🔐 Admin: ✅',
-      Markup.inlineKeyboard([[Markup.button.callback('⬅️ VOLVER', 'adm_maintenance')]])
-    );
-    await ctx.answerCbQuery();
   });
 
   bot.on('message', async (ctx, next) => {
-    if (!guard(ctx) || !ctx.session?.adminCategoryAction || !ctx.message?.text) return next();
-    const action = ctx.session.adminCategoryAction;
-    const value = ctx.message.text.trim();
+    if (!guard(ctx) || !ctx.session || !ctx.session.adminCategoryAction || !ctx.message || !ctx.message.text) return next();
+    const action = ctx.session.adminCategoryAction, value = ctx.message.text.trim();
     if (!value || value.startsWith('/')) return next();
-    ctx.session.adminCategoryAction = null;
-    if (!db) return ctx.reply('❌ Firebase no disponible.');
-    const ref = db.collection('config').doc('categorias');
-    const d = await ref.get();
-    const lista = d.exists && Array.isArray(d.data().lista) ? [...d.data().lista] : [];
-    if (action === 'add') {
-      if (lista.some(c => String(c).toLowerCase() === value.toLowerCase())) {
-        ctx.session.adminCategoryAction = null;
-        return ctx.reply('⚠️ Esa categoría ya existe.');
-      }
-      lista.push(value);
-      await ref.set({ lista, updatedAt: new Date() }, { merge: true });
-      return ctx.reply('✅ Categoría agregada: ' + value, Markup.inlineKeyboard([
-        [Markup.button.callback('📁 VER CATEGORÍAS', 'admin_cats')]
-      ]));
-    }
-
-    if (action.startsWith('edit:')) {
-      const i = Number(action.split(':')[1]);
-      if (!Number.isInteger(i) || !lista[i]) {
-        return ctx.reply('❌ La categoría que intentas editar ya no existe.');
-      }
-      if (lista.some((c, index) => index !== i && String(c).toLowerCase() === value.toLowerCase())) {
-        return ctx.reply('⚠️ Esa categoría ya existe.');
-      }
-      const anterior = lista[i];
-      lista[i] = value;
-      await ref.set({ lista, updatedAt: new Date() }, { merge: true });
-      return ctx.reply(
-        '✅ Categoría actualizada.\\n\\n' +
-        'Antes: ' + anterior + '\\n' +
-        'Ahora: ' + value,
-        Markup.inlineKeyboard([
-          [Markup.button.callback('📁 VER CATEGORÍAS', 'admin_cats')]
-        ])
-      );
-    }
-
-    return next();
+    try {
+      if (action === 'add') await agregarCategoria(value);
+      else if (action.startsWith('edit:')) await editarCategoria(Number(action.split(':')[1]), value);
+      ctx.session.adminCategoryAction = null;
+      await ctx.reply('✅ Categoría guardada: ' + value);
+    } catch (e) { await ctx.reply('❌ ' + e.message); }
   });
 }
 
-module.exports = { register, panelKeyboard };
+function register(bot) {
+  bot.command('admin', async ctx => {
+    if (!guard(ctx)) return ctx.reply('⛔ Solo administradores.');
+    await ctx.reply('⚙️ PANEL DE ADMINISTRACIÓN\n\nSelecciona un módulo:', panelKeyboard());
+  });
+  bot.action('admin_back', async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    await ctx.editMessageText('⚙️ PANEL DE ADMINISTRACIÓN\n\nSelecciona un módulo:', panelKeyboard());
+    await ctx.answerCbQuery();
+  });
+  bot.action('adm_close', async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    try { await ctx.deleteMessage(); } catch { await ctx.editMessageText('✅ Panel cerrado.'); }
+    await ctx.answerCbQuery();
+  });
+  bot.action('adm_gestion', async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    await ctx.editMessageText('👮 ADMINISTRADORES\n\nIDs configurados en ADMIN_IDS:\n' + (ADMIN_IDS.join(', ') || 'Ninguno'),
+      Markup.inlineKeyboard([[Markup.button.callback('⬅️ VOLVER', 'admin_back')]]));
+    await ctx.answerCbQuery();
+  });
+  bot.action('adm_stats', async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
+    const count = async name => {
+      try { return (await db.collection(name).count().get()).data().count || 0; }
+      catch { return (await db.collection(name).get()).size; }
+    };
+    const r = await Promise.all([count('usuarios'), count('chats'), count('publicaciones')]);
+    const categorias = (await getCategorias()).length;
+    await ctx.editMessageText('📊 ESTADÍSTICAS\n\n👥 Usuarios: ' + r[0] + '\n📺 Canales / grupos: ' + r[1] + '\n📢 Publicaciones: ' + r[2] + '\n📁 Categorías: ' + categorias,
+      Markup.inlineKeyboard([[Markup.button.callback('🔄 ACTUALIZAR', 'adm_stats')],[Markup.button.callback('⬅️ VOLVER', 'admin_back')]]));
+    await ctx.answerCbQuery();
+  });
+  bot.action('adm_lista_users', async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
+    const snap = await db.collection('usuarios').limit(50).get();
+    const rows = snap.docs.map(doc => {
+      const u = doc.data() || {};
+      return [Markup.button.callback('👤 ' + String(u.first_name || u.username || doc.id).slice(0, 30), 'admin_user_' + doc.id)];
+    });
+    rows.push([Markup.button.callback('⬅️ VOLVER', 'admin_back')]);
+    await ctx.editMessageText('👥 USUARIOS\n\n' + (snap.empty ? 'No hay usuarios registrados.' : 'Mostrando hasta 50 usuarios.'), Markup.inlineKeyboard(rows));
+    await ctx.answerCbQuery();
+  });
+  bot.action(/^admin_user_(.+)$/, async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
+    const doc = await db.collection('usuarios').doc(ctx.match[1]).get();
+    if (!doc.exists) return ctx.answerCbQuery('Usuario no encontrado', { show_alert: true });
+    const u = doc.data() || {};
+    await ctx.editMessageText('👤 USUARIO\n\n🆔 ID: ' + doc.id + '\n📝 Nombre: ' + (u.first_name || 'Sin nombre') + '\n👤 Username: ' + (u.username ? '@' + u.username : 'Sin username') + '\n⚙️ Estado: ' + (u.estado || 'activo'),
+      Markup.inlineKeyboard([[Markup.button.callback('⬅️ VOLVER', 'adm_lista_users')]]));
+    await ctx.answerCbQuery();
+  });
+  bot.action('adm_config', async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    await ctx.editMessageText('⚙️ CONFIGURACIÓN\n\nSelecciona una sección:', Markup.inlineKeyboard([
+      [Markup.button.callback('📺 CANALES / LOG / ORIGEN', 'adm_logorigen')],
+      [Markup.button.callback('🩺 DIAGNÓSTICO', 'adm_diagnostic')],
+      [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
+    ]));
+    await ctx.answerCbQuery();
+  });
+  bot.action('adm_maintenance', async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    await ctx.editMessageText('🧹 MANTENIMIENTO\n\nHerramientas:', Markup.inlineKeyboard([
+      [Markup.button.callback('🧹 LIMPIAR CACHÉ', 'adm_cache_clear', { style: 'danger' })],
+      [Markup.button.callback('🩺 DIAGNÓSTICO', 'adm_diagnostic')],
+      [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
+    ]));
+    await ctx.answerCbQuery();
+  });
+  bot.action('adm_cache_clear', async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    Object.keys(CACHE_CANALES).forEach(k => CACHE_CANALES[k] = null);
+    limpiarCacheCategorias();
+    await ctx.answerCbQuery('✅ Cachés limpiadas');
+    await ctx.editMessageText('🧹 CACHÉ\n\n✅ Caché de canales y categorías limpiada.',
+      Markup.inlineKeyboard([[Markup.button.callback('⬅️ VOLVER', 'adm_maintenance')]]));
+  });
+  bot.action('adm_diagnostic', async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    await ctx.editMessageText('🩺 DIAGNÓSTICO\n\n🤖 Bot: ✅ Activo\n🗄️ Firebase: ' + (isFirebaseReady() ? '✅ Conectado' : '❌ No conectado') + '\n👮 Admin: ✅',
+      Markup.inlineKeyboard([[Markup.button.callback('⬅️ VOLVER', 'adm_maintenance')]]));
+    await ctx.answerCbQuery();
+  });
+  setupCategories(bot);
+}
+module.exports = { register };
