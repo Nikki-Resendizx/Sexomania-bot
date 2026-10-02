@@ -222,6 +222,7 @@ bot.use(canalesHandler.canalesMiddleware());
 require('./handlers/admin/chats')(bot);
 require('./handlers/admin/users')(bot);
 require('./handlers/admin/publicaciones')(bot);
+require('./handlers/admin/super')(bot);
 require('./handlers/user/menu')(bot);
 
 bot.action('ayuda', ctx => ctx.reply('Usa /start para volver al menú.'));
