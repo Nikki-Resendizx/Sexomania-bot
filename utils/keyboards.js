@@ -27,7 +27,7 @@ function getMenuInline() {
     [Markup.button.callback('🔴 MIS CHATS AGG', 'mis_chats')],
     ...(process.env.WEBAPP_URL ? [[Markup.button.webApp('🔵 WEBAPP', process.env.WEBAPP_URL)]] : []),
     [Markup.button.url('🟢 CANAL OFICIAL', process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/Sexomania_Links')],
-    [Markup.button.url('🔴 BOTONERA', 'http://t.me/sexomanialinksbot'), Markup.button.url('🔴 LISTAS', 'https://t.me/SexomaniaListas_Bot')]
+    [Markup.button.url('🔴 BOTONERA', 'http://t.me/SexomaniaLinksBot'), Markup.button.url('🔴 LISTAS', 'https://t.me/SexomaniaListas_Bot')]
   ]);
 }
 
