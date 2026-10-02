@@ -2,8 +2,8 @@ const { db } = require('./firebase');
 
 const CATEGORIAS_DEFAULT = [
   '🔞 𝐂𝐚𝐧𝐚𝐥𝐞𝐬 𝐃𝐞 𝐀𝐩𝐨𝐫𝐭𝐞𝐬 𝐗𝐗𝐗 🔞',
+  '🔞 𝐆𝐫𝐮𝐩𝐨𝐬 𝐃𝐞 𝐀𝐩𝐨𝐫𝐭𝐞𝐬 𝐗𝐗𝐗 🔞',
   '💸 𝐆𝐫𝐮𝐩𝐨𝐬 𝐃𝐞 𝐕𝐞𝐧𝐭𝐚𝐬 ✚𝟏𝟖 💸',
-  'VENTAS +18',
   '📢 𝐂𝐚𝐧𝐚𝐥𝐞𝐬 & 𝐆𝐫𝐮𝐩𝐨𝐬 𝐏𝐮𝐛𝐥𝐢𝐜𝐢𝐭𝐚𝐫𝐢𝐨𝐬 📢',
   '🍿 (𝐂 & 𝐆) 𝐃𝐞 𝐄𝐧𝐭𝐫𝐞𝐭𝐞𝐧𝐢𝐦𝐢𝐞𝐧𝐭𝐨🍿',
   '🎨 𝐂𝐚𝐧𝐚𝐥𝐞𝐬 & 𝐆𝐫𝐮𝐩𝐨𝐬 𝐃𝐞 𝐀𝐫𝐭𝐞𝐬 🎨',
@@ -30,7 +30,7 @@ async function getCategorias(options = {}) {
     const lista = CATEGORIAS_DEFAULT.slice();
 
     if (!snap.exists || !Array.isArray(snap.data().lista) || !snap.data().lista.length) {
-      await ref.set({ lista, version: 4, updatedAt: new Date() }, { merge: true });
+      await ref.set({ lista, version: 5, updatedAt: new Date() }, { merge: true });
     } else if (normalizar(snap.data().lista).join('\n') !== lista.join('\n')) {
       await ref.set({ lista, version: 4, updatedAt: new Date() }, { merge: true });
     }
