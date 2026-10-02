@@ -7,7 +7,7 @@ const guard = ctx => isAdmin(ctx.from?.id);
 const back = 'admin_back';
 
 function menu(title, rows) {
-  return Markup.inlineKeyboard([...rows, [Markup.button.callback('⬅️ VOLVER', back)]);
+  return Markup.inlineKeyboard([...rows, [Markup.button.callback('⬅️ VOLVER', back)]]);
 }
 
 async function countCollection(name) {
