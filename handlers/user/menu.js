@@ -11,7 +11,7 @@ function guardUser(ctx) {
 async function renderUserCategories(ctx, edit = false) {
   const categorias = await getCategorias({ force: true });
   const rows = categorias.map((cat, i) => [
-    Markup.button.callback(String(cat), 'user_cat_' + i)
+    Markup.button.callback((i + 1) + '. ' + String(cat), 'user_cat_' + i)
   ]);
   rows.push([Markup.button.callback('⬅️ INICIO', 'user_home', { style: 'danger' })]);
   const text = '📁 CATEGORÍAS\n\nSelecciona una categoría:';
@@ -171,7 +171,7 @@ function setupUserHandler(bot) {
       ctx.session.userAddChat = null;
       const categorias = await getCategorias();
       const rows = categorias.map((cat, i) => [
-        Markup.button.callback(String(cat), 'user_add_cat_' + chatId + '_' + i)
+        Markup.button.callback((i + 1) + '. ' + String(cat), 'user_add_cat_' + chatId + '_' + i)
       ]);
       rows.push([Markup.button.callback('❌ CANCELAR', 'user_home')]);
       return ctx.reply('📺 <b>' + String(title).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</b>\n\nSelecciona la categoría para enviar la solicitud:', {
