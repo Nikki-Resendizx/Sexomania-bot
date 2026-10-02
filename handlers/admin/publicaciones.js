@@ -82,9 +82,21 @@ function setupPublicacionesHandler(bot) {
     const p = snap.data() || {};
     await ctx.editMessageText('📝 PUBLICACIÓN\n\n🆔 ' + ctx.match[1] + '\n📁 ' + (p.categoria || 'Sin categoría') + '\n\n' + String(p.contenido || p.texto || '').slice(0, 3500),
       Markup.inlineKeyboard([
-        [Markup.button.callback('🗑️ ELIMINAR', 'pub_del_' + ctx.match[1], { style: 'danger' })],
+        [Markup.button.callback('✏️ EDITAR CONTENIDO', 'pub_edit_content_' + ctx.match[1], { style: 'primary' }), Markup.button.callback('🗑️ ELIMINAR', 'pub_del_' + ctx.match[1], { style: 'danger' })],
         [Markup.button.callback('⬅️ VOLVER', 'admin_publicaciones')]
       ])); await ctx.answerCbQuery();
+  });
+
+  bot.action(/^pub_edit_content_(.+)$/, async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    if (!db) return ctx.answerCbQuery('Base de datos no disponible', { show_alert: true });
+    const id = ctx.match[1];
+    const snap = await pubRef(id).get();
+    if (!snap.exists) return ctx.answerCbQuery('Publicación no encontrada', { show_alert: true });
+    ctx.session = ctx.session || {};
+    ctx.session.publicacionEdit = id;
+    await ctx.reply('✏️ Envía el nuevo texto, foto, video o documento para reemplazar el contenido.\\n\\n/cancel para cancelar.');
+    await ctx.answerCbQuery();
   });
 
   bot.action(/^pub_del_(.+)$/, async ctx => {
@@ -94,7 +106,38 @@ function setupPublicacionesHandler(bot) {
   });
 
   bot.on('message', async (ctx, next) => {
-    if (!guard(ctx) || !ctx.session || !ctx.session.publicacion || !ctx.message) return next();
+    if (!guard(ctx) || !ctx.session || !ctx.message) return next();
+
+    if (ctx.session.publicacionEdit) {
+      if (ctx.message.text && ctx.message.text.startsWith('/')) return next();
+      if (!db) return ctx.reply('❌ Base de datos no disponible.');
+      const id = ctx.session.publicacionEdit;
+      const msg = ctx.message;
+      const contenido = msg.text || msg.caption || '';
+      if (!contenido && !msg.photo && !msg.video && !msg.document) {
+        return ctx.reply('❌ Envía texto o un archivo multimedia.');
+      }
+      const payload = {
+        contenido,
+        titulo: contenido.split('\\n')[0].slice(0, 100) || 'Publicación',
+        tipo: msg.photo ? 'photo' : msg.video ? 'video' : msg.document ? 'document' : 'text',
+        fileId: msg.photo && msg.photo.length ? msg.photo[msg.photo.length - 1].file_id : (msg.video ? msg.video.file_id : (msg.document ? msg.document.file_id : null)),
+        actualizadoAt: new Date()
+      };
+      try {
+        await pubRef(id).set(payload, { merge: true });
+        ctx.session.publicacionEdit = null;
+        return ctx.reply('✅ Publicación actualizada.', Markup.inlineKeyboard([
+          [Markup.button.callback('📢 PUBLICACIONES', 'admin_publicaciones')],
+          [Markup.button.callback('⬅️ PANEL', 'admin_back')]
+        ]));
+      } catch (error) {
+        console.error('❌ Error editando publicación:', error.message);
+        return ctx.reply('❌ No pude actualizar la publicación.');
+      }
+    }
+
+    if (!ctx.session.publicacion) return next();
     const flow = ctx.session.publicacion;
     if (flow.step !== 'contenido') return next();
     const msg = ctx.message, contenido = msg.text || msg.caption || '';
