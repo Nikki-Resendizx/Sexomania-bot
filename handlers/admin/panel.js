@@ -9,6 +9,7 @@ const panelKeyboard = () => Markup.inlineKeyboard([
   [Markup.button.callback('👥 USUARIOS', 'adm_lista_users'), Markup.button.callback('📁 CATEGORÍAS', 'admin_cats')],
   [Markup.button.callback('📢 PUBLICACIONES', 'admin_publicaciones')],
   [Markup.button.callback('📺 CANALES / LOG / ORIGEN', 'adm_logorigen')],
+      [Markup.button.callback('🖼️ BIENVENIDA', 'adm_welcome')],
   [Markup.button.callback('⚙️ CONFIGURACIÓN', 'adm_config'), Markup.button.callback('🧹 MANTENIMIENTO', 'adm_maintenance')],
   [Markup.button.callback('❌ CERRAR', 'adm_close')]
 ]);
@@ -157,6 +158,58 @@ function register(bot) {
     ]));
     await ctx.answerCbQuery();
   });
+  bot.action('adm_welcome', async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    const doc = db ? await db.collection('config').doc('bot').get() : null;
+    const data = doc && doc.exists ? doc.data() : {};
+    await ctx.editMessageText(
+      '🖼️ BIENVENIDA\\n\\n' +
+      'Foto: ' + (data.welcomePhoto ? '✅ Configurada' : '❌ No configurada') + '\\n' +
+      'Texto: ' + (data.welcomeText ? '✅ Personalizado' : '⚙️ Predeterminado') + '\\n\\n' +
+      'Selecciona qué deseas modificar:',
+      Markup.inlineKeyboard([
+        [Markup.button.callback('📝 CAMBIAR TEXTO', 'adm_welcome_text')],
+        [Markup.button.callback('🖼️ CAMBIAR FOTO', 'adm_welcome_photo')],
+        [Markup.button.callback('⬅️ VOLVER', 'admin_back')]
+      ])
+    );
+    await ctx.answerCbQuery();
+  });
+
+  bot.action('adm_welcome_text', async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    ctx.session = ctx.session || {};
+    ctx.session.adminWelcomeText = true;
+    await ctx.reply('📝 Envía el nuevo texto de bienvenida. Puedes usar HTML de Telegram y {nombre} para insertar el nombre del usuario.\\n\\n/cancel para cancelar.');
+    await ctx.answerCbQuery();
+  });
+
+  bot.action('adm_welcome_photo', async ctx => {
+    if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
+    ctx.session = ctx.session || {};
+    ctx.session.adminWelcomePhoto = true;
+    await ctx.reply('🖼️ Envía la nueva foto de bienvenida.\\n\\n/cancel para cancelar.');
+    await ctx.answerCbQuery();
+  });
+
+  bot.on('message', async (ctx, next) => {
+    if (!guard(ctx) || !ctx.session || !db || !ctx.message) return next();
+    if (ctx.session.adminWelcomeText && typeof ctx.message.text === 'string') {
+      const value = ctx.message.text.trim();
+      if (!value || value.startsWith('/')) return next();
+      await db.collection('config').doc('bot').set({ welcomeText: value }, { merge: true });
+      ctx.session.adminWelcomeText = null;
+      return ctx.reply('✅ Texto de bienvenida actualizado.');
+    }
+    if (ctx.session.adminWelcomePhoto && ctx.message.photo?.length) {
+      const photo = ctx.message.photo[ctx.message.photo.length - 1].file_id;
+      await db.collection('config').doc('bot').set({ welcomePhoto: photo }, { merge: true });
+      ctx.session.adminWelcomePhoto = null;
+      return ctx.reply('✅ Foto de bienvenida actualizada.');
+    }
+    return next();
+  });
+
   bot.action('adm_maintenance', async ctx => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     await ctx.editMessageText('🧹 MANTENIMIENTO\n\nHerramientas:', Markup.inlineKeyboard([
