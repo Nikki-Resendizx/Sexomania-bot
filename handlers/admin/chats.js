@@ -3,6 +3,7 @@ const { db } = require('../../config/firebase');
 const { extraerInfoChat } = require('../../utils/extractor');
 const { getDetallesChatKeyboard } = require('../../utils/keyboards');
 const { ESTADOS_CHAT, isAdmin } = require('../../config/constantes');
+const { getCategorias } = require('../../config/categorias');
 
 function setupChatsHandler(bot) {
   const guard = ctx => isAdmin(ctx.from?.id);
@@ -11,9 +12,10 @@ function setupChatsHandler(bot) {
   bot.command('info', async (ctx) => {
     if (!guard(ctx)) return ctx.reply('⛔ Solo administradores.');
     if (!db) return ctx.reply('❌ Base de datos no configurada.');
-    let args = ctx.message.text.split(' ');
-    if (args.length < 2) return ctx.reply('Uso: /info <ID del chat>');
-    let chatId = args[1];
+    let args = (ctx.message.text || '').trim().split(/\\s+/);
+    let chatId = args[1] || ctx.message.reply_to_message?.forward_from_chat?.id || ctx.message.reply_to_message?.forward_origin?.chat?.id;
+    if (!chatId) return ctx.reply('Uso: /info <ID del chat> o responde a un mensaje del canal/grupo.');
+    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
     let doc = await db.collection('chats').doc(chatId).get();
     if (!doc.exists) return ctx.reply('❌ Chat no encontrado en DB');
 
@@ -60,21 +62,23 @@ function setupChatsHandler(bot) {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     if (!db) return ctx.answerCbQuery('Base de datos no disponible', { show_alert: true });
     let chatId = ctx.match[1];
-    let snap = await db.collection('config').doc('categorias').get();
-    let cats = snap.exists? snap.data().lista : [];
+    let cats = await getCategorias({ force: true });
     if (!cats.length) return ctx.answerCbQuery('No hay categorías', true);
 
-    let botones = cats.map(c => [Markup.button.callback(c, `set_cat_${chatId}_${c}`)]);
+    let botones = cats.map((c, i) => [Markup.button.callback(c, `set_cat_${chatId}_${i}`)]);
     botones.push([Markup.button.callback('⬅️ Volver', `detalles_chat_${chatId}`)]);
     await ctx.editMessageReplyMarkup({ inline_keyboard: botones });
     await ctx.answerCbQuery();
   });
 
-  bot.action(/set_cat_(.+)_(.+)/, async (ctx) => {
+  bot.action(/set_cat_(-?\\d+)_(\\d+)/, async (ctx) => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     let chatId = ctx.match[1];
-    let cat = ctx.match[2];
-    await db.collection('chats').doc(chatId).update({ categoria: cat });
+    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
+    const cats = await getCategorias();
+    const cat = cats[Number(ctx.match[2])];
+    if (!cat) return ctx.answerCbQuery('Categoría no encontrada', { show_alert: true });
+    await db.collection('chats').doc(chatId).update({ categoria: cat, actualizado: new Date() });
     await ctx.answerCbQuery(`Categoría cambiada a ${cat}`);
     let doc = await db.collection('chats').doc(chatId).get();
     await ctx.reply(`✅ Categoría actualizada: ${cat}`, getDetallesChatKeyboard(chatId));
@@ -83,7 +87,8 @@ function setupChatsHandler(bot) {
   bot.action(/chat_autoban_(.+)/, async (ctx) => {
     if (!guard(ctx)) return ctx.answerCbQuery('⛔ Sin permiso', { show_alert: true });
     let chatId = ctx.match[1];
-    await db.collection('chats').doc(chatId).update({ autoBaneado: true, baneadoAdmin: true, estado: ESTADOS_CHAT.BANEADO });
+    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
+    await db.collection('chats').doc(chatId).update({ autoBaneado: true, baneadoAdmin: true, estado: ESTADOS_CHAT.BANEADO, actualizado: new Date() });
     await ctx.answerCbQuery('🚫 AutoBan activado');
     await ctx.reply(`🚫 Chat \`${chatId}\` baneado por AutoBan`, { parse_mode: 'Markdown' });
   });
@@ -98,7 +103,7 @@ function setupChatsHandler(bot) {
       estado: ESTADOS_CHAT.APROBADO,
       baneadoAdmin: false,
       autoBaneado: false,
-      isPrivate: info?.isPrivate? false : false
+      isPrivate: Boolean(info?.isPrivate)
     };
 
     // Si era privado y se aprueba, ya deja de ser privado
@@ -108,7 +113,8 @@ function setupChatsHandler(bot) {
       update.enlace = info.enlace;
     }
 
-    await db.collection('chats').doc(chatId).update(update);
+    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
+    await db.collection('chats').doc(chatId).update({ ...update, actualizado: new Date() });
     await ctx.answerCbQuery('✅ Aprobado');
     await ctx.reply(`✅ Chat \`${chatId}\` aprobado y publicado`, { parse_mode: 'Markdown',...getDetallesChatKeyboard(chatId) });
   });
