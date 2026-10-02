@@ -22,12 +22,12 @@ function getDetallesUsuarioKeyboard(userId, banned = false) {
 
 function getMenuInline() {
   return Markup.inlineKeyboard([
-    [Markup.button.callback('🔵 CATEGORÍAS', 'ver_categorias_user')],
-    [Markup.button.callback('🟢 + GRUPO / CANAL', 'agregar_chat')],
-    [Markup.button.callback('🔴 MIS CHATS AGG', 'mis_chats')],
-    ...(process.env.WEBAPP_URL ? [[Markup.button.webApp('🔵 WEBAPP', process.env.WEBAPP_URL)]] : []),
-    [Markup.button.url('🟢 CANAL OFICIAL', process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/Sexomania_Links')],
-    [Markup.button.url('🔴 BOTONERA', 'http://t.me/SexomaniaLinksBot'), Markup.button.url('🔴 LISTAS', 'https://t.me/SexomaniaListas_Bot')]
+    [Markup.button.callback('🔵 📁 𝘾𝘼𝙏𝙀𝙂𝙊𝙍𝙄𝘼𝙎', 'ver_categorias_user')],
+    [Markup.button.callback('🟢 👥 ✚ 𝙂𝙍𝙐𝙋𝙊 / 𝘾𝘼𝙉𝘼𝙇', 'agregar_chat')],
+    [Markup.button.callback('🔴 🗂️ 𝙈𝙄𝙎 𝘾𝙃𝘼𝙏𝙎', 'mis_chats')],
+    ...(process.env.WEBAPP_URL ? [[Markup.button.webApp('🔵 🖥️ 𝙎𝙀𝙓𝙊𝙈𝘼𝙉𝙄𝘼 𝙋𝘼𝙉𝙀𝙇', process.env.WEBAPP_URL)]] : []),
+    [Markup.button.url('🟢 📢 𝘾𝘼𝙉𝘼𝙇 𝙊𝙁𝙄𝘾𝙄𝘼𝙇', process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/Sexomania_Links')],
+    [Markup.button.url('🔴 💟 𝘽𝙊𝙏𝙊𝙉𝙀𝙍𝘼', 'http://t.me/SexomaniaLinksBot'), Markup.button.url('🔴 📝 𝙇𝙄𝙎𝙏𝘼𝙎', 'https://t.me/SexomaniaListas_Bot')]
   ]);
 }
 
