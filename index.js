@@ -7,6 +7,10 @@ const path = require('path');
 const WEB_PORT = Number(process.env.PORT || 3000);
 const WEB_ROOT = path.join(__dirname, 'web');
 const WEBAPP_URL = process.env.WEBAPP_URL || 'https://sexomania-links.vercel.app/';
+const OFFICIAL_CHANNEL_URL = process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/Sexomania_Links';
+const BOTONERA_URL = 'http://t.me/sexomanialinksbot';
+const LISTAS_URL = 'https://t.me/SexomaniaListas_Bot';
+const DEFAULT_WELCOME_TEXT = '🔥 <b>Bienvenid@ {nombre} a SEXOMANIA</b> 🔥\\n\\n😈 El bot más cochino de Telegram 😈';
 
 function sendHttp(res, status, contentType, body) {
   res.writeHead(status, {
@@ -135,19 +139,36 @@ function escapeHtml(value) {
   return String(value || '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
 }
 
+async function getWelcomeText(nombre) {
+  const { db } = require('./config/firebase');
+  let template = DEFAULT_WELCOME_TEXT;
+  if (db) {
+    try {
+      const doc = await db.collection('config').doc('bot').get();
+      if (doc.exists && doc.data().welcomeText) template = doc.data().welcomeText;
+    } catch (error) { console.error('❌ Error leyendo texto de bienvenida:', error.message); }
+  }
+  return template.replace(/\{nombre\}/g, escapeHtml(nombre));
+}
+
+function getWelcomeKeyboard() {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback('🔵 CATEGORÍAS', 'ver_categorias_user')],
+    [Markup.button.callback('🟢 + GRUPO / CANAL', 'agregar_chat')],
+    [Markup.button.callback('🔴 MIS CHATS AGG', 'mis_chats')],
+    [Markup.button.webApp('🔵 WEBAPP', WEBAPP_URL)],
+    [Markup.button.url('🟢 CANAL OFICIAL', OFFICIAL_CHANNEL_URL)],
+    [Markup.button.url('🔴 BOTONERA', BOTONERA_URL), Markup.button.url('🔴 LISTAS', LISTAS_URL)]
+  ]);
+}
+
 bot.start(async ctx => {
   try {
     await registrarUsuario(ctx);
     const nombre = ctx.from.first_name || 'bebé';
     const foto = await getFotoBienvenida();
-    const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback('📁 CATEGORÍAS', 'ver_categorias_user', { style: 'danger' })],
-      [Markup.button.callback('MIS GRUPOS', 'mis_chats', { style: 'success' })],
-      [Markup.button.callback('+ CANAL O GRUPO', 'agregar_chat', { style: 'primary' })],
-      ...(WEBAPP_URL ? [[Markup.button.webApp('🌐 WEBAPP', WEBAPP_URL)]] : []),
-      [Markup.button.url('CANAL OFICIAL', process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/Sexomania_Links')]
-    ]);
-    const caption = '🔥 <b>Bienvenid@ ' + escapeHtml(nombre) + ' a SEXOMANIA</b> 🔥\n\n😈 El bot más cochino de Telegram 😈';
+    const keyboard = getWelcomeKeyboard();
+    const caption = await getWelcomeText(nombre);
     if (foto) await ctx.replyWithPhoto(foto, { caption, parse_mode: 'HTML', ...keyboard });
     else await ctx.reply(caption, { parse_mode: 'HTML', reply_markup: keyboard.reply_markup });
   } catch (e) {
@@ -157,7 +178,7 @@ bot.start(async ctx => {
 });
 
 bot.command('cancel', async ctx => {
-  if (ctx.session) ['esperandoCanal','cambiandoEnlace','cambiandoNombre','adminCategoryAction','publicacion','userAddChat'].forEach(k => delete ctx.session[k]);
+  if (ctx.session) ['esperandoCanal','cambiandoEnlace','cambiandoNombre','adminCategoryAction','publicacion','userAddChat','adminWelcomeText','adminWelcomePhoto'].forEach(k => delete ctx.session[k]);
   await ctx.reply('✅ Operación cancelada.');
 });
 
