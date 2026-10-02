@@ -6,7 +6,7 @@ const path = require('path');
 
 const WEB_PORT = Number(process.env.PORT || 3000);
 const WEB_ROOT = path.join(__dirname, 'web');
-const WEBAPP_URL = process.env.WEBAPP_URL || process.env.RENDER_EXTERNAL_URL || '';
+const WEBAPP_URL = process.env.WEBAPP_URL || 'https://sexomania-links.vercel.app/';
 
 function sendHttp(res, status, contentType, body) {
   res.writeHead(status, {
@@ -157,7 +157,7 @@ bot.start(async ctx => {
 });
 
 bot.command('cancel', async ctx => {
-  if (ctx.session) ['esperandoCanal','cambiandoEnlace','cambiandoNombre','adminCategoryAction','publicacion'].forEach(k => delete ctx.session[k]);
+  if (ctx.session) ['esperandoCanal','cambiandoEnlace','cambiandoNombre','adminCategoryAction','publicacion','userAddChat'].forEach(k => delete ctx.session[k]);
   await ctx.reply('✅ Operación cancelada.');
 });
 
@@ -189,6 +189,7 @@ bot.use(canalesHandler.canalesMiddleware());
 require('./handlers/admin/chats')(bot);
 require('./handlers/admin/users')(bot);
 require('./handlers/admin/publicaciones')(bot);
+require('./handlers/user/menu')(bot);
 
 bot.action('ayuda', ctx => ctx.reply('Usa /start para volver al menú.'));
 
