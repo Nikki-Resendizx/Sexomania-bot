@@ -141,11 +141,11 @@ bot.start(async ctx => {
     const nombre = ctx.from.first_name || 'bebé';
     const foto = await getFotoBienvenida();
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback('📁 CATEGORÍAS', 'ver_categorias_user')],
-      [Markup.button.callback('🟢 MIS GRUPOS', 'mis_chats')],
-      [Markup.button.callback('🔵 + CANAL O GRUPO', 'agregar_chat')],
+      [Markup.button.callback('📁 CATEGORÍAS', 'ver_categorias_user', { style: 'danger' })],
+      [Markup.button.callback('MIS GRUPOS', 'mis_chats', { style: 'success' })],
+      [Markup.button.callback('+ CANAL O GRUPO', 'agregar_chat', { style: 'primary' })],
       ...(WEBAPP_URL ? [[Markup.button.webApp('🌐 WEBAPP', WEBAPP_URL)]] : []),
-      [Markup.button.url('🔴 CANAL OFICIAL', process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/Sexomania_Links')]
+      [Markup.button.url('CANAL OFICIAL', process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/Sexomania_Links')]
     ]);
     const caption = '🔥 <b>Bienvenid@ ' + escapeHtml(nombre) + ' a SEXOMANIA</b> 🔥\n\n😈 El bot más cochino de Telegram 😈';
     if (foto) await ctx.replyWithPhoto(foto, { caption, parse_mode: 'HTML', ...keyboard });
