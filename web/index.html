@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SEXOMANIA V11</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#09090b;--card:#17171c;--text:#fff;--muted:#a1a1aa;--accent:#ff1744}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#09090b,#1a0610);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
+main{max-width:680px;margin:auto;padding:28px 18px 40px}.logo{font-size:48px;text-align:center}.title{text-align:center;font-size:28px;font-weight:800;margin:8px 0}.sub{text-align:center;color:var(--muted);margin-bottom:24px}
+.card{background:rgba(23,23,28,.9);border:1px solid #29292f;border-radius:20px;padding:18px;margin:12px 0}.status{display:flex;align-items:center;gap:10px}.dot{width:11px;height:11px;background:#22c55e;border-radius:50%}.btn{display:block;width:100%;padding:14px;margin-top:12px;border:0;border-radius:14px;background:#27272a;color:#fff;font-size:16px;font-weight:700;text-align:center;text-decoration:none}.primary{background:var(--accent)}
+.small{font-size:13px;color:var(--muted);margin-top:14px;text-align:center}
+</style>
+</head>
+<body>
+<main>
+<div class="logo">🔥</div>
+<div class="title">SEXOMANIA V11</div>
+<div class="sub">WebApp oficial del bot</div>
+<div class="card"><div class="status"><span class="dot"></span><b>Servicio conectado</b></div><div id="details" class="small">Comprobando estado…</div></div>
+<div class="card">
+<a class="btn primary" href="https://t.me/Sexomania_Links" target="_blank">🟢 Canal Oficial</a>
+<button class="btn" onclick="closeApp()">🔙 Volver a Telegram</button>
+</div>
+<div class="small">Esta WebApp está servida directamente desde Render.</div>
+</main>
+<script>
+const tg=window.Telegram&&window.Telegram.WebApp;
+if(tg){tg.ready();tg.expand();}
+fetch('/api/status').then(r=>r.json()).then(d=>{
+ document.getElementById('details').textContent='WebApp activa · puerto '+d.port+' · '+new Date(d.timestamp).toLocaleString();
+}).catch(()=>document.getElementById('details').textContent='WebApp activa');
+function closeApp(){if(tg) tg.close(); else history.back();}
+</script>
+</body>
+</html>
