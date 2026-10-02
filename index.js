@@ -10,8 +10,8 @@ const WEBAPP_URL = process.env.WEBAPP_URL || 'https://sexomania-links.vercel.app
 const OFFICIAL_CHANNEL_URL = process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/Sexomania_Links';
 const BOTONERA_URL = 'http://t.me/sexomanialinksbot';
 const LISTAS_URL = 'https://t.me/SexomaniaListas_Bot';
-const ADD_GROUP_URL = 'https://t.me/SexomaniaLinksBot?startgroup&admin=post_messages+edit_messages+delete_messages+invite_users+pin_messages+manage_chat';
-const ADD_CHANNEL_URL = 'https://t.me/SexomaniaLinksBot?startchannel&admin=post_messages+edit_messages+delete_messages+invite_users+pin_messages+manage_chat';
+const ADD_GROUP_URL = 'https://t.me/Sexomanialinkbot?startgroup&admin=post_messages+edit_messages+delete_messages+invite_users+pin_messages+manage_chat';
+const ADD_CHANNEL_URL = 'https://t.me/Sexomanialinkbot?startchannel&admin=post_messages+edit_messages+delete_messages+invite_users+pin_messages+manage_chat';
 const DEFAULT_WELCOME_TEXT = '🔥 <b>Bienvenid@ {nombre} a SEXOMANIA</b> 🔥\n\n😈 El bot más cochino de Telegram 😈';
 
 function sendHttp(res, status, contentType, body) {
@@ -182,11 +182,18 @@ async function getWelcomeText(nombre, userId) {
 
 function getWelcomeKeyboard() {
   return Markup.inlineKeyboard([
-    [{ text: '📁 𝘾𝘼𝙏𝙀𝙂𝙊𝙍𝙄𝘼𝙎', callback_data: 'ver_categorias_user', style: 'primary' }],
-    [{ text: '👥 ✚ 𝙂𝙍𝙐𝙋𝙊 / 𝘾𝘼𝙉𝘼𝙇', callback_data: 'add_group_channel', style: 'success' }],
-    [{ text: '🗂️ 𝙈𝙄𝙎 𝘾𝙃𝘼𝙏𝙎 𝘼𝙂𝙂', callback_data: 'mis_chats', style: 'danger' }],
-    [{ text: '🖥️ 𝙒𝙀𝘽𝘼𝙋𝙋', web_app: { url: WEBAPP_URL }, style: 'primary' }],
-    [{ text: '📢 𝘾𝘼𝙉𝘼𝙇 𝙊𝙁𝙄𝘾𝙄𝘼𝙇', url: OFFICIAL_CHANNEL_URL, style: 'success' }],
+    [
+      { text: '👥 ✚ 𝙂𝙍𝙐𝙋𝙊', url: ADD_GROUP_URL, style: 'danger' },
+      { text: '📣 ✚ 𝘾𝘼𝙉𝘼𝙇', url: ADD_CHANNEL_URL, style: 'danger' }
+    ],
+    [
+      { text: '📁 𝘾𝘼𝙏𝙀𝙂𝙊𝙍𝙄𝘼𝙎', callback_data: 'ver_categorias_user', style: 'success' },
+      { text: '🗂️ 𝙈𝙄𝙎 𝘾𝙃𝘼𝙏𝙎', callback_data: 'mis_chats', style: 'success' }
+    ],
+    [
+      { text: '🖥️ 𝙋𝘼𝙉𝙀𝙇', callback_data: 'open_admin_panel', style: 'primary' },
+      { text: '📢 𝘾𝘼𝙉𝘼𝙇 𝙊𝙁𝙄𝘾𝙄𝘼𝙇', url: OFFICIAL_CHANNEL_URL, style: 'primary' }
+    ],
     [
       { text: '💟 𝘽𝙊𝙏𝙊𝙉𝙀𝙍𝘼', url: BOTONERA_URL, style: 'danger' },
       { text: '📝 𝙇𝙄𝙎𝙏𝘼𝙎', url: LISTAS_URL, style: 'danger' }
@@ -206,6 +213,25 @@ bot.start(async ctx => {
   } catch (e) {
     console.error('❌ Error en /start:', e);
     await ctx.reply('🔥 Bienvenid@ a SEXOMANIA.');
+  }
+});
+
+bot.action('open_admin_panel', async ctx => {
+  if (!isAdmin(ctx.from && ctx.from.id)) {
+    await ctx.answerCbQuery('⛔ Solo administradores.', { show_alert: true });
+    return;
+  }
+  await ctx.answerCbQuery();
+  try {
+    await ctx.editMessageText('⚙️ PANEL DE ADMINISTRACIÓN\\n\\nSelecciona un módulo:', Markup.inlineKeyboard([
+      [{ text: '👋 BIENVENIDA', callback_data: 'adm_welcome', style: 'primary' }],
+      [{ text: '📁 CATEGORÍAS', callback_data: 'admin_cats_menu', style: 'success' }],
+      [{ text: '💬 CHATS', callback_data: 'adm_chats_menu', style: 'success' }],
+      [{ text: '👥 USUARIOS', callback_data: 'adm_users_menu', style: 'success' }],
+      [{ text: '⬅️ VOLVER', callback_data: 'start_menu', style: 'danger' }]
+    ]));
+  } catch {
+    await ctx.reply('⚙️ PANEL DE ADMINISTRACIÓN');
   }
 });
 
