@@ -153,12 +153,15 @@ async function getWelcomeText(nombre) {
 
 function getWelcomeKeyboard() {
   return Markup.inlineKeyboard([
-    [Markup.button.callback('🔵 📁 𝘾𝘼𝙏𝙀𝙂𝙊𝙍𝙄𝘼𝙎', 'ver_categorias_user')],
-    [Markup.button.callback('🟢 👥 ✚ 𝙂𝙍𝙐𝙋𝙊 / 𝘾𝘼𝙉𝘼𝙇', 'agregar_chat')],
-    [Markup.button.callback('🔴 🗂️ 𝙈𝙄𝙎 𝘾𝙃𝘼𝙏𝙎', 'mis_chats')],
-    [Markup.button.webApp('🔵 🖥️ 𝙎𝙀𝙓𝙊𝙈𝘼𝙉𝙄𝘼 𝙋𝘼𝙉𝙀𝙇', WEBAPP_URL)],
-    [Markup.button.url('🟢 📢 𝘾𝘼𝙉𝘼𝙇 𝙊𝙁𝙄𝘾𝙄𝘼𝙇', OFFICIAL_CHANNEL_URL)],
-    [Markup.button.url('🔴 💟 𝘽𝙊𝙏𝙊𝙉𝙀𝙍𝘼', BOTONERA_URL), Markup.button.url('🔴 📝 𝙇𝙄𝙎𝙏𝘼𝙎', LISTAS_URL)]
+    [{ text: '📁 𝘾𝘼𝙏𝙀𝙂𝙊𝙍𝙄𝘼𝙎', callback_data: 'ver_categorias_user', style: 'primary' }],
+    [{ text: '👥 ✚ 𝙂𝙍𝙐𝙋𝙊 / 𝘾𝘼𝙉𝘼𝙇', callback_data: 'agregar_chat', style: 'success' }],
+    [{ text: '🗂️ 𝙈𝙄𝙎 𝘾𝙃𝘼𝙏𝙎', callback_data: 'mis_chats', style: 'danger' }],
+    [{ text: '🖥️ 𝙎𝙀𝙓𝙊𝙈𝘼𝙉𝙄𝘼 𝙋𝘼𝙉𝙀𝙇', web_app: { url: WEBAPP_URL }, style: 'primary' }],
+    [{ text: '📢 𝘾𝘼𝙉𝘼𝙇 𝙊𝙁𝙄𝘾𝙄𝘼𝙇', url: OFFICIAL_CHANNEL_URL, style: 'success' }],
+    [
+      { text: '💟 𝘽𝙊𝙏𝙊𝙉𝙀𝙍𝘼', url: BOTONERA_URL, style: 'danger' },
+      { text: '📝 𝙇𝙄𝙎𝙏𝘼𝙎', url: LISTAS_URL, style: 'danger' }
+    ]
   ]);
 }
 
