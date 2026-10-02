@@ -191,7 +191,7 @@ function getWelcomeKeyboard() {
       { text: '🗂️ 𝙈𝙄𝙎 𝘾𝙃𝘼𝙏𝙎', callback_data: 'mis_chats', style: 'success' }
     ],
     [
-      { text: '🖥️ 𝙋𝘼𝙉𝙀𝙇', callback_data: 'open_admin_panel', style: 'primary' },
+      { text: '🖥️ 𝙋𝘼𝙉𝙀𝙇', web_app: { url: WEBAPP_URL }, style: 'primary' },
       { text: '📢 𝘾𝘼𝙉𝘼𝙇 𝙊𝙁𝙄𝘾𝙄𝘼𝙇', url: OFFICIAL_CHANNEL_URL, style: 'primary' }
     ],
     [
@@ -213,25 +213,6 @@ bot.start(async ctx => {
   } catch (e) {
     console.error('❌ Error en /start:', e);
     await ctx.reply('🔥 Bienvenid@ a SEXOMANIA.');
-  }
-});
-
-bot.action('open_admin_panel', async ctx => {
-  if (!isAdmin(ctx.from && ctx.from.id)) {
-    await ctx.answerCbQuery('⛔ Solo administradores.', { show_alert: true });
-    return;
-  }
-  await ctx.answerCbQuery();
-  try {
-    await ctx.editMessageText('⚙️ PANEL DE ADMINISTRACIÓN\\n\\nSelecciona un módulo:', Markup.inlineKeyboard([
-      [{ text: '👋 BIENVENIDA', callback_data: 'adm_welcome', style: 'primary' }],
-      [{ text: '📁 CATEGORÍAS', callback_data: 'admin_cats_menu', style: 'success' }],
-      [{ text: '💬 CHATS', callback_data: 'adm_chats_menu', style: 'success' }],
-      [{ text: '👥 USUARIOS', callback_data: 'adm_users_menu', style: 'success' }],
-      [{ text: '⬅️ VOLVER', callback_data: 'start_menu', style: 'danger' }]
-    ]));
-  } catch {
-    await ctx.reply('⚙️ PANEL DE ADMINISTRACIÓN');
   }
 });
 
