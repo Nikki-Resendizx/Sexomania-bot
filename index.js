@@ -137,7 +137,9 @@ async function getFotoBienvenida() {
   }
 }
 
-function ctxUserMentionSafe(nombre, userId) { return userId ? '<a href="tg://user?id=' + Number(userId) + '">' + escapeHtml(nombre) + '</a>' : escapeHtml(nombre); }\n\nfunction escapeHtml(value) {
+function ctxUserMentionSafe(nombre, userId) { return userId ? '<a href="tg://user?id=' + Number(userId) + '">' + escapeHtml(nombre) + '</a>' : escapeHtml(nombre); }
+
+function escapeHtml(value) {
   return String(value || '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
 }
 
@@ -150,7 +152,8 @@ async function getWelcomeText(nombre, userId) {
       if (doc.exists && doc.data().welcomeText) template = doc.data().welcomeText;
     } catch (error) { console.error('❌ Error leyendo texto de bienvenida:', error.message); }
   }
-  const mention = ctxUserMentionSafe(nombre, userId);\n  return template.replace(/\{nombre\}/g, escapeHtml(nombre)).replace(/\{mention\}/g, mention);
+  const mention = ctxUserMentionSafe(nombre, userId);
+  return template.replace(/\{nombre\}/g, escapeHtml(nombre)).replace(/\{mention\}/g, mention);
 }
 
 function getWelcomeKeyboard() {
