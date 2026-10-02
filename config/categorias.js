@@ -29,13 +29,11 @@ async function getCategorias(options = {}) {
     const snap = await ref.get();
     const lista = CATEGORIAS_DEFAULT.slice();
 
-    if (!snap.exists || !Array.isArray(snap.data().lista) || !snap.data().lista.length) {
-      await ref.set({ lista, version: 5, updatedAt: new Date() }, { merge: true });
-    } else if (normalizar(snap.data().lista).join('\n') !== lista.join('\n')) {
-      await ref.set({ lista, version: 4, updatedAt: new Date() }, { merge: true });
-    }
-
-    CACHE.lista = lista;
+    // IMPORTANTE: esta lectura nunca escribe en Firebase.
+    // Las escrituras de categorías solo ocurren desde las funciones administrativas
+    // explícitas (guardarCategorias/agregarCategoria/editarCategoria/etc.).
+    const remoto = snap.exists && Array.isArray(snap.data().lista) ? normalizar(snap.data().lista) : [];
+    CACHE.lista = remoto.length ? remoto : [...CATEGORIAS_DEFAULT];
   } catch (error) {
     console.error('❌ Error leyendo categorías:', error.message);
     CACHE.lista = CACHE.lista || [...CATEGORIAS_DEFAULT];
