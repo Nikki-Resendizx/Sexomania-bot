@@ -33,7 +33,15 @@ const webServer = http.createServer((req, res) => {
     }));
   }
 
-  const requested = route === '/' ? '/index.html' : route;
+  // La WebApp real se sirve desde el proyecto original SEXOMANIA Links.
+  // Render actúa como entrada HTTPS para que Telegram pueda abrirla desde el bot.
+  if (route === '/' || route === '/index.html' || route === '/admin.html' || route.startsWith('/Logo.webp')) {
+    const target = 'https://sexomania-links.vercel.app' + (route === '/' ? '/' : route);
+    res.writeHead(302, { Location: target, 'Cache-Control': 'no-store' });
+    return res.end();
+  }
+
+  const requested = route;
   const filePath = path.normalize(path.join(WEB_ROOT, requested));
   if (!filePath.startsWith(WEB_ROOT)) return sendHttp(res, 403, 'text/plain; charset=utf-8', 'Forbidden');
 
