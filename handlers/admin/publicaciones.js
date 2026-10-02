@@ -98,6 +98,7 @@ function setupPublicacionesHandler(bot) {
     const flow = ctx.session.publicacion;
     if (flow.step !== 'contenido') return next();
     const msg = ctx.message, contenido = msg.text || msg.caption || '';
+    if (msg.text && msg.text.startsWith('/')) return next();
     if (!contenido && !msg.photo && !msg.video && !msg.document) return ctx.reply('❌ Envía texto o un archivo multimedia.');
     const id = String(Date.now()) + '_' + String(ctx.from.id);
     const payload = {
