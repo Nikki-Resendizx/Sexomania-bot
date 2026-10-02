@@ -137,11 +137,11 @@ async function getFotoBienvenida() {
   }
 }
 
-function ctxUserMentionSafe(nombre) { return ''; }\n\nfunction escapeHtml(value) {
+function ctxUserMentionSafe(nombre, userId) { return userId ? '<a href="tg://user?id=' + Number(userId) + '">' + escapeHtml(nombre) + '</a>' : escapeHtml(nombre); }\n\nfunction escapeHtml(value) {
   return String(value || '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
 }
 
-async function getWelcomeText(nombre) {
+async function getWelcomeText(nombre, userId) {
   const { db } = require('./config/firebase');
   let template = DEFAULT_WELCOME_TEXT;
   if (db) {
@@ -150,7 +150,7 @@ async function getWelcomeText(nombre) {
       if (doc.exists && doc.data().welcomeText) template = doc.data().welcomeText;
     } catch (error) { console.error('❌ Error leyendo texto de bienvenida:', error.message); }
   }
-  const mention = ctxUserMentionSafe(nombre);\n  return template.replace(/\{nombre\}/g, escapeHtml(nombre)).replace(/\{mention\}/g, mention);
+  const mention = ctxUserMentionSafe(nombre, userId);\n  return template.replace(/\{nombre\}/g, escapeHtml(nombre)).replace(/\{mention\}/g, mention);
 }
 
 function getWelcomeKeyboard() {
@@ -173,7 +173,7 @@ bot.start(async ctx => {
     const nombre = ctx.from.first_name || 'bebé';
     const foto = await getFotoBienvenida();
     const keyboard = getWelcomeKeyboard();
-    const caption = await getWelcomeText(nombre);
+    const caption = await getWelcomeText(nombre, ctx.from.id);
     if (foto) await ctx.replyWithPhoto(foto, { caption, parse_mode: 'HTML', ...keyboard });
     else await ctx.reply(caption, { parse_mode: 'HTML', reply_markup: keyboard.reply_markup });
   } catch (e) {
