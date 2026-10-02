@@ -65,7 +65,7 @@ webServer.listen(WEB_PORT, '0.0.0.0', () => {
 
 const { Telegraf, session, Markup } = require('telegraf');
 const { isAdmin } = require('./config/constantes');
-const { ensureStoreTopics } = require('./config/telegramStore');
+const { ensureStoreTopics, sendToStore } = require('./config/telegramStore');
 
 const token = process.env.BOT_TOKEN || process.env.TOKEN_BOT;
 if (!token) throw new Error('❌ Falta BOT_TOKEN/TOKEN_BOT en las variables de entorno.');
@@ -115,12 +115,35 @@ async function registrarUsuario(ctx) {
   };
   try {
     const snap = await ref.get();
-    if (!snap.exists) {
+    const esNuevo = !snap.exists;
+    if (esNuevo) {
       payload.fechaIngreso = new Date();
       payload.creado = new Date();
       payload.chatsRegistrados = 0;
     }
     await ref.set(payload, { merge: true });
+
+    if (esNuevo) {
+      const nombre = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Sin nombre';
+      const username = user.username ? '@' + user.username : 'Sin username';
+      const mensaje = [
+        '👤 <b>NUEVO USUARIO</b>',
+        '',
+        '🆔 ID: <code>' + user.id + '</code>',
+        '👤 Nombre: ' + escapeHtml(nombre),
+        '🔗 Username: ' + escapeHtml(username),
+        '🌐 Idioma: ' + escapeHtml(user.language_code || 'No indicado'),
+        '👑 Admin: ' + (isAdmin(user.id) ? 'Sí' : 'No'),
+        '',
+        '📅 Ingreso: ' + new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })
+      ].join('\\n');
+
+      try {
+        await sendToStore(ctx.telegram, 'usuarios', mensaje, { parse_mode: 'HTML' });
+      } catch (storeError) {
+        console.error('❌ Error enviando usuario al Telegram Store:', storeError.message);
+      }
+    }
   } catch (error) {
     console.error('❌ Error registrando usuario:', error.message);
   }
