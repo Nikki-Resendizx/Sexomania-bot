@@ -1,14 +1,14 @@
 const { db } = require('./firebase');
 
 const CATEGORIAS_DEFAULT = [
-  '🔞 CANALES DE APORTES XXX',
-  '🔞 GRUPOS DE APORTES XXX',
-  '💸 GRUPOS DE VENTAS',
-  '📣 CANALES PUBLICITARIOS',
-  '🍿 CANALES DE ENTRETENIMIENTO',
-  '🎨 CANALES DE ARTE',
-  '💰(𝐂 & 𝐆)',
-  '🤖 LOS MEJORES BOTS'
+  '🔞 𝐂𝐚𝐧𝐚𝐥𝐞𝐬 𝐃𝐞 𝐀𝐩𝐨𝐫𝐭𝐞𝐬 𝐗𝐗𝐗 🔞',
+  '💸 𝐆𝐫𝐮𝐩𝐨𝐬 𝐃𝐞 𝐕𝐞𝐧𝐭𝐚𝐬 ✚𝟏𝟖 💸',
+  'VENTAS +18',
+  '📢 𝐂𝐚𝐧𝐚𝐥𝐞𝐬 & 𝐆𝐫𝐮𝐩𝐨𝐬 𝐏𝐮𝐛𝐥𝐢𝐜𝐢𝐭𝐚𝐫𝐢𝐨𝐬 📢',
+  '🍿 (𝐂 & 𝐆) 𝐃𝐞 𝐄𝐧𝐭𝐫𝐞𝐭𝐞𝐧𝐢𝐦𝐢𝐞𝐧𝐭𝐨🍿',
+  '🎨 𝐂𝐚𝐧𝐚𝐥𝐞𝐬 & 𝐆𝐫𝐮𝐩𝐨𝐬 𝐃𝐞 𝐀𝐫𝐭𝐞𝐬 🎨',
+  '💰(𝐂 & 𝐆) 𝐃𝐞 𝐕𝐞𝐧𝐭𝐚𝐬 𝐃𝐞 𝐀𝐫𝐭𝐢𝐜𝐮𝐥𝐨𝐬💰',
+  '🤖 𝐋𝐨𝐬 𝐌𝐞𝐣𝐨𝐫𝐞𝐬 𝐁𝐎𝐓𝐒 🤖'
 ];
 
 const CACHE = { lista: null };
@@ -16,18 +16,6 @@ const CACHE = { lista: null };
 function normalizar(lista) {
   if (!Array.isArray(lista)) return [];
   return [...new Set(lista.map(v => String(v || '').trim()).filter(Boolean))];
-}
-
-function migrarCategorias(lista) {
-  const salida = normalizar(lista);
-  const cg = '💰(𝐂 & 𝐆)';
-  const bots = '🤖 LOS MEJORES BOTS';
-  if (!salida.includes(cg)) {
-    const posBots = salida.indexOf(bots);
-    if (posBots >= 0) salida.splice(posBots, 0, cg);
-    else salida.push(cg);
-  }
-  return salida;
 }
 
 async function getCategorias(options = {}) {
@@ -39,16 +27,15 @@ async function getCategorias(options = {}) {
   try {
     const ref = db.collection('config').doc('categorias');
     const snap = await ref.get();
+    const lista = CATEGORIAS_DEFAULT.slice();
+
     if (!snap.exists || !Array.isArray(snap.data().lista) || !snap.data().lista.length) {
-      CACHE.lista = [...CATEGORIAS_DEFAULT];
-      await ref.set({ lista: CACHE.lista, version: 3, updatedAt: new Date() }, { merge: true });
-    } else {
-      const original = normalizar(snap.data().lista);
-      CACHE.lista = migrarCategorias(original);
-      if (CACHE.lista.join('\n') !== original.join('\n')) {
-        await ref.set({ lista: CACHE.lista, version: 3, updatedAt: new Date() }, { merge: true });
-      }
+      await ref.set({ lista, version: 4, updatedAt: new Date() }, { merge: true });
+    } else if (normalizar(snap.data().lista).join('\n') !== lista.join('\n')) {
+      await ref.set({ lista, version: 4, updatedAt: new Date() }, { merge: true });
     }
+
+    CACHE.lista = lista;
   } catch (error) {
     console.error('❌ Error leyendo categorías:', error.message);
     CACHE.lista = CACHE.lista || [...CATEGORIAS_DEFAULT];
@@ -60,7 +47,7 @@ async function guardarCategorias(lista) {
   const limpia = normalizar(lista);
   if (!limpia.length) throw new Error('Debe existir al menos una categoría.');
   CACHE.lista = limpia;
-  if (db) await db.collection('config').doc('categorias').set({ lista: limpia, version: 3, updatedAt: new Date() }, { merge: true });
+  if (db) await db.collection('config').doc('categorias').set({ lista: limpia, version: 4, updatedAt: new Date() }, { merge: true });
   return [...CACHE.lista];
 }
 
