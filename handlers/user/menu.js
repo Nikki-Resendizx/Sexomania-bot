@@ -3,6 +3,7 @@ const { db } = require('../../config/firebase');
 const { getCategorias } = require('../../config/categorias');
 const { isAdmin, ESTADOS_CHAT } = require('../../config/constantes');
 const { getMenuInline } = require('../../utils/keyboards');
+const { prepararFotoTelegram, crearCaptionWebApp } = require('../../utils/webappExtractor');
 
 function guardUser(ctx) {
   return Boolean(ctx.from?.id);
@@ -40,22 +41,58 @@ function setupUserHandler(bot) {
       .get();
 
     const rows = [];
-    const lines = ['📁 ' + categoria, ''];
+    const lines = ['📁 ' + categoria, '', 'Selecciona un canal o grupo:'];
     if (snap.empty) {
       lines.push('No hay canales o grupos publicados en esta categoría.');
     } else {
-      snap.docs.forEach((doc, i) => {
+      snap.docs.forEach((doc) => {
         const c = doc.data() || {};
-        lines.push((i + 1) + '. ' + (c.nombre || 'Sin nombre'));
-        if (c.enlace && c.enlace !== 'Sin enlace') {
-          rows.push([Markup.button.url('🔗 ' + String(c.nombre || 'Abrir').slice(0, 35), c.enlace)]);
-        }
+        rows.push([Markup.button.callback(
+          '📺 ' + String(c.nombre || 'Sin nombre').slice(0, 50),
+          'user_chat_' + doc.id
+        )]);
       });
     }
     rows.push([Markup.button.callback('⬅️ CATEGORÍAS', 'ver_categorias_user', { style: 'danger' })]);
     rows.push([Markup.button.callback('🏠 INICIO', 'user_home', { style: 'danger' })]);
     await ctx.editMessageText(lines.join('\n'), Markup.inlineKeyboard(rows));
     await ctx.answerCbQuery();
+  });
+
+  bot.action(/^user_chat_(.+)$/, async ctx => {
+    if (!guardUser(ctx)) return ctx.answerCbQuery('Sesión no disponible', { show_alert: true });
+    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
+
+    try {
+      // SOLO LECTURA: obtenemos el documento original de la WebApp.
+      const ref = db.collection('chats').doc(String(ctx.match[1]));
+      const snap = await ref.get();
+      if (!snap.exists) return ctx.answerCbQuery('Publicación no encontrada', { show_alert: true });
+
+      const chat = { id: snap.id, ...(snap.data() || {}) };
+      if (chat.activo === false) return ctx.answerCbQuery('Este enlace ya no está disponible', { show_alert: true });
+
+      const caption = crearCaptionWebApp(chat);
+      const foto = prepararFotoTelegram(chat.foto);
+      const rows = [];
+      if (chat.link) rows.push([Markup.button.url('⚡ UNETE AQUI ⚡', String(chat.link))]);
+      rows.push([Markup.button.callback('⬅️ VOLVER A CATEGORÍAS', 'ver_categorias_user', { style: 'danger' })]);
+      rows.push([Markup.button.callback('🏠 INICIO', 'user_home', { style: 'danger' })]);
+      const keyboard = Markup.inlineKeyboard(rows);
+
+      // Las data:image/base64 se convierten únicamente en memoria.
+      // No se crea archivo temporal y no se escribe nada en Firebase.
+      if (foto) {
+        await ctx.replyWithPhoto(foto, { caption, parse_mode: 'HTML', ...keyboard });
+        return ctx.answerCbQuery('📸 Foto extraída de la WebApp');
+      }
+
+      await ctx.reply(caption, { parse_mode: 'HTML', ...keyboard });
+      await ctx.answerCbQuery('Datos extraídos de la WebApp');
+    } catch (error) {
+      console.error('❌ Extracción WebApp:', error.message);
+      await ctx.answerCbQuery('No pude extraer los datos', { show_alert: true });
+    }
   });
 
   bot.action('mis_chats', async ctx => {
