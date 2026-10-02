@@ -10,7 +10,7 @@ const WEBAPP_URL = process.env.WEBAPP_URL || 'https://sexomania-links.vercel.app
 const OFFICIAL_CHANNEL_URL = process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/Sexomania_Links';
 const BOTONERA_URL = 'http://t.me/sexomanialinksbot';
 const LISTAS_URL = 'https://t.me/SexomaniaListas_Bot';
-const DEFAULT_WELCOME_TEXT = '🔥 <b>Bienvenid@ {nombre} a SEXOMANIA</b> 🔥\\n\\n😈 El bot más cochino de Telegram 😈';
+const DEFAULT_WELCOME_TEXT = '🔥 <b>Bienvenid@ {nombre} a SEXOMANIA</b> 🔥\n\n😈 El bot más cochino de Telegram 😈';
 
 function sendHttp(res, status, contentType, body) {
   res.writeHead(status, {
