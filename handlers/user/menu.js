@@ -13,7 +13,7 @@ async function renderUserCategories(ctx, edit = false) {
   const rows = categorias.map((cat, i) => [
     Markup.button.callback(String(cat), 'user_cat_' + i)
   ]);
-  rows.push([Markup.button.callback('⬅️ INICIO', 'user_home')]);
+  rows.push([Markup.button.callback('⬅️ INICIO', 'user_home', { style: 'danger' })]);
   const text = '📁 CATEGORÍAS\n\nSelecciona una categoría:';
   if (edit) await ctx.editMessageText(text, Markup.inlineKeyboard(rows));
   else await ctx.reply(text, Markup.inlineKeyboard(rows));
@@ -52,8 +52,8 @@ function setupUserHandler(bot) {
         }
       });
     }
-    rows.push([Markup.button.callback('⬅️ CATEGORÍAS', 'ver_categorias_user')]);
-    rows.push([Markup.button.callback('🏠 INICIO', 'user_home')]);
+    rows.push([Markup.button.callback('⬅️ CATEGORÍAS', 'ver_categorias_user', { style: 'danger' })]);
+    rows.push([Markup.button.callback('🏠 INICIO', 'user_home', { style: 'danger' })]);
     await ctx.editMessageText(lines.join('\n'), Markup.inlineKeyboard(rows));
     await ctx.answerCbQuery();
   });
@@ -67,7 +67,7 @@ function setupUserHandler(bot) {
       .limit(50)
       .get();
 
-    const lines = ['🟢 MIS GRUPOS Y CANALES', ''];
+    const lines = ['MIS GRUPOS Y CANALES', ''];
     if (snap.empty) {
       lines.push('Todavía no has registrado ningún canal o grupo.');
     } else {
@@ -78,7 +78,7 @@ function setupUserHandler(bot) {
     }
 
     await ctx.editMessageText(lines.join('\n'), Markup.inlineKeyboard([
-      [Markup.button.callback('🔵 + AGREGAR', 'agregar_chat')],
+      [Markup.button.callback('+ AGREGAR', 'agregar_chat', { style: 'primary' })],
       [Markup.button.callback('🏠 INICIO', 'user_home')]
     ]));
     await ctx.answerCbQuery();
@@ -88,7 +88,7 @@ function setupUserHandler(bot) {
     if (!guardUser(ctx)) return ctx.answerCbQuery('Sesión no disponible', { show_alert: true });
     ctx.session = ctx.session || {};
     ctx.session.userAddChat = true;
-    await ctx.reply('🔵 <b>AGREGAR CANAL O GRUPO</b>\n\nReenvía aquí un mensaje del canal/grupo o escribe su ID (-100...).\n\n/cancel para cancelar.', { parse_mode: 'HTML' });
+    await ctx.reply('<b>AGREGAR CANAL O GRUPO</b>\n\nReenvía aquí un mensaje del canal/grupo o escribe su ID (-100...).\n\n/cancel para cancelar.', { parse_mode: 'HTML' });
     await ctx.answerCbQuery();
   });
 
