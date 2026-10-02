@@ -1,6 +1,7 @@
 const { Markup } = require('telegraf');
 const { db } = require('../../config/firebase');
-const { getCategorias } = require('../../config/categorias');
+const { getWebAppChats, getWebAppChat, getWebAppSections } = require('../../config/webappData');
+const { sendToStore } = require('../../config/telegramStore');
 const { isAdmin, ESTADOS_CHAT } = require('../../config/constantes');
 const { getMenuInline } = require('../../utils/keyboards');
 const { prepararFotoTelegram, crearCaptionWebApp } = require('../../utils/webappExtractor');
@@ -10,7 +11,7 @@ function guardUser(ctx) {
 }
 
 async function renderUserCategories(ctx, edit = false) {
-  const categorias = await getCategorias({ force: true });
+  const categorias = await getWebAppSections();
   const rows = categorias.map((cat, i) => [
     Markup.button.callback((i + 1) + '. ' + String(cat), 'user_cat_' + i)
   ]);
@@ -29,27 +30,21 @@ function setupUserHandler(bot) {
 
   bot.action(/^user_cat_(\d+)$/, async ctx => {
     if (!guardUser(ctx)) return ctx.answerCbQuery('Sesión no disponible', { show_alert: true });
-    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
-    const categorias = await getCategorias();
+    const categorias = await getWebAppSections();
     const categoria = categorias[Number(ctx.match[1])];
     if (!categoria) return ctx.answerCbQuery('Categoría no encontrada', { show_alert: true });
 
-    const snap = await db.collection('chats')
-      .where('categoria', '==', categoria)
-      .where('aprobado', '==', true)
-      .limit(50)
-      .get();
+    const chats = await getWebAppChats({ section: categoria, onlyActive: true, limit: 50 });
 
     const rows = [];
     const lines = ['📁 ' + categoria, '', 'Selecciona un canal o grupo:'];
-    if (snap.empty) {
+    if (!chats.length) {
       lines.push('No hay canales o grupos publicados en esta categoría.');
     } else {
-      snap.docs.forEach((doc) => {
-        const c = doc.data() || {};
+      chats.forEach((chat) => {
         rows.push([Markup.button.callback(
-          '📺 ' + String(c.nombre || 'Sin nombre').slice(0, 50),
-          'user_chat_' + doc.id
+          '📺 ' + String(chat.nombre || 'Sin nombre').slice(0, 50),
+          'user_chat_' + chat.id
         )]);
       });
     }
@@ -61,15 +56,10 @@ function setupUserHandler(bot) {
 
   bot.action(/^user_chat_(.+)$/, async ctx => {
     if (!guardUser(ctx)) return ctx.answerCbQuery('Sesión no disponible', { show_alert: true });
-    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
-
     try {
-      // SOLO LECTURA: obtenemos el documento original de la WebApp.
-      const ref = db.collection('chats').doc(String(ctx.match[1]));
-      const snap = await ref.get();
-      if (!snap.exists) return ctx.answerCbQuery('Publicación no encontrada', { show_alert: true });
-
-      const chat = { id: snap.id, ...(snap.data() || {}) };
+      // SOLO LECTURA: obtenemos el registro original de la fuente de datos de la WebApp.
+      const chat = await getWebAppChat(String(ctx.match[1]));
+      if (!chat) return ctx.answerCbQuery('Publicación no encontrada', { show_alert: true });
       if (chat.activo === false) return ctx.answerCbQuery('Este enlace ya no está disponible', { show_alert: true });
 
       const caption = crearCaptionWebApp(chat);
@@ -97,20 +87,14 @@ function setupUserHandler(bot) {
 
   bot.action('mis_chats', async ctx => {
     if (!guardUser(ctx)) return ctx.answerCbQuery('Sesión no disponible', { show_alert: true });
-    if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
-
-    const snap = await db.collection('chats')
-      .where('solicitante', '==', ctx.from.id)
-      .limit(50)
-      .get();
+    const chats = await getWebAppChats({ requesterId: ctx.from.id, limit: 50 });
 
     const lines = ['MIS GRUPOS Y CANALES', ''];
-    if (snap.empty) {
+    if (!chats.length) {
       lines.push('Todavía no has registrado ningún canal o grupo.');
     } else {
-      snap.docs.forEach((doc, i) => {
-        const c = doc.data() || {};
-        lines.push((i + 1) + '. ' + (c.nombre || doc.id) + ' — ' + (c.estado || 'pendiente'));
+      chats.forEach((chat, i) => {
+        lines.push((i + 1) + '. ' + (chat.nombre || chat.id) + ' — ' + (chat.estado || 'pendiente'));
       });
     }
 
@@ -140,7 +124,7 @@ function setupUserHandler(bot) {
     if (!db) return ctx.answerCbQuery('Firebase no disponible', { show_alert: true });
 
     const chatId = ctx.match[1];
-    const categorias = await getCategorias();
+    const categorias = await getWebAppSections();
     const categoria = categorias[Number(ctx.match[2])];
     if (!categoria) return ctx.answerCbQuery('Categoría no encontrada', { show_alert: true });
 
