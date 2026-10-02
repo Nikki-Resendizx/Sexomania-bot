@@ -65,6 +65,7 @@ webServer.listen(WEB_PORT, '0.0.0.0', () => {
 
 const { Telegraf, session, Markup } = require('telegraf');
 const { isAdmin } = require('./config/constantes');
+const { ensureStoreTopics } = require('./config/telegramStore');
 
 const token = process.env.BOT_TOKEN || process.env.TOKEN_BOT;
 if (!token) throw new Error('❌ Falta BOT_TOKEN/TOKEN_BOT en las variables de entorno.');
@@ -257,7 +258,12 @@ bot.catch((error, ctx) => {
 
 console.log('✅ Handlers cargados. Seguridad y panel activos.');
 
-bot.launch()
+ensureStoreTopics(bot)
+  .then(() => bot.launch())
+  .catch(error => {
+    console.error('❌ No se pudo preparar el Telegram Store:', error.message);
+    process.exitCode = 1;
+  });
   .then(() => console.log('🔥 SEXOMANIA V11 encendido.'))
   .catch(error => {
     console.error('❌ No se pudo iniciar el bot:', error);
