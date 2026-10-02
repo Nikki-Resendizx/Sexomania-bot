@@ -1,37 +1,193 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>SEXOMANIA V11</title>
+<!-- SEXOMANIA LINKS WebApp integrada -->
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>SEXOMANIA</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-:root{color-scheme:dark;--bg:#09090b;--card:#17171c;--text:#fff;--muted:#a1a1aa;--accent:#ff1744}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#09090b,#1a0610);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
-main{max-width:680px;margin:auto;padding:28px 18px 40px}.logo{font-size:48px;text-align:center}.title{text-align:center;font-size:28px;font-weight:800;margin:8px 0}.sub{text-align:center;color:var(--muted);margin-bottom:24px}
-.card{background:rgba(23,23,28,.9);border:1px solid #29292f;border-radius:20px;padding:18px;margin:12px 0}.status{display:flex;align-items:center;gap:10px}.dot{width:11px;height:11px;background:#22c55e;border-radius:50%}.btn{display:block;width:100%;padding:14px;margin-top:12px;border:0;border-radius:14px;background:#27272a;color:#fff;font-size:16px;font-weight:700;text-align:center;text-decoration:none}.primary{background:var(--accent)}
-.small{font-size:13px;color:var(--muted);margin-top:14px;text-align:center}
-</style>
-</head>
-<body>
-<main>
-<div class="logo">🔥</div>
-<div class="title">SEXOMANIA V11</div>
-<div class="sub">WebApp oficial del bot</div>
-<div class="card"><div class="status"><span class="dot"></span><b>Servicio conectado</b></div><div id="details" class="small">Comprobando estado…</div></div>
-<div class="card">
-<a class="btn primary" href="https://t.me/Sexomania_Links" target="_blank">🟢 Canal Oficial</a>
-<button class="btn" onclick="closeApp()">🔙 Volver a Telegram</button>
-</div>
-<div class="small">Esta WebApp está servida directamente desde Render.</div>
-</main>
-<script>
-const tg=window.Telegram&&window.Telegram.WebApp;
-if(tg){tg.ready();tg.expand();}
-fetch('/api/status').then(r=>r.json()).then(d=>{
- document.getElementById('details').textContent='WebApp activa · puerto '+d.port+' · '+new Date(d.timestamp).toLocaleString();
-}).catch(()=>document.getElementById('details').textContent='WebApp activa');
-function closeApp(){if(tg) tg.close(); else history.back();}
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyC6eyDXaTCPgcb_se9vVP4rfwVkdc0ayn0",
+  authDomain: "sexomania-links.firebaseapp.com",
+  projectId: "sexomania-links",
+  storageBucket: "sexomania-links.firebasestorage.app",
+  messagingSenderId: "1061811152332",
+  appId: "1:1061811152332:web:8d75649506182236862969",
+  measurementId: "G-6JYYBD18CH"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window.db=db; window.col=collection; window.onSnapshot=onSnapshot; window.docu=doc; window.upDoc=updateDoc; window.incr=increment;
 </script>
-</body>
-</html>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#2a0000 0%,#0f0000 40%,#000 100%);color:#fff;font-family:Arial;text-align:center;min-height:100vh}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;position:sticky;top:0;background:rgba(0,0,0,0.9);border-bottom:2px solid red;z-index:20}
+.logo-text{font-weight:900;font-size:18px;background:linear-gradient(90deg,#ff0000,#ff9900,#ff0000);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shine 2s linear infinite}
+@keyframes shine{to{background-position:200% center}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes glow{0%,100%{box-shadow:0 0 22px rgba(255,0,0,0.7)}50%{box-shadow:0 0 35px rgba(255,0,0,1)}}
+.header-principal{padding:22px 15px 8px;text-align:center}
+.logo-img{width:120px;height:120px;border-radius:50%;border:3px solid #ff0000;margin:0 auto 14px;overflow:hidden;animation:float 3s ease-in-out infinite, glow 2s infinite;background:#000}
+.logo-img img{width:100%;height:100%;object-fit:cover;display:block}
+.titulo-principal{font-size:34px;font-weight:900;letter-spacing:2px;margin:0;background:linear-gradient(180deg,#fff,#ff9999,#ff0000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 0 30px rgba(255,0,0,0.8);line-height:1}
+.subtitulo{font-size:12px;letter-spacing:6px;color:#ff7777;margin-top:5px;font-weight:700}
+.divider{width:60px;height:3px;background:linear-gradient(90deg,transparent,red,transparent);margin:12px auto;box-shadow:0 0 10px red}
+.menu{display:grid;gap:18px;padding:10px 18px 20px}
+.btn-sec{padding:26px 18px;border-radius:20px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;min-height:75px;font-size:17px;text-transform:uppercase;box-shadow:0 8px 25px rgba(0,0,0,0.8);border:2px solid transparent}
+.btn-sec:nth-child(odd){background:linear-gradient(145deg,#ffcf99,#ffae42,#ffe1bf);color:#b30000;border-color:#ff9900}
+.btn-sec:nth-child(even){background:linear-gradient(145deg,#ff0000,#ff3333,#cc0000);color:#fff;border-color:#ff6666}
+.list{padding:12px;display:none}.tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.search{width:100%;padding:12px 14px;border-radius:20px;border:1px solid #5a0000;background:#170000;color:#fff;outline:none}.item-lista{position:relative;width:100%;padding:14px;margin:7px 0;border-radius:14px;background:#1f0000;border:1px solid #5a0000;color:#ffb4b4;text-align:left;display:flex;justify-content:space-between;cursor:pointer}.item-lista small{display:block;color:#aaa;margin-top:4px}.badge{display:inline-block;padding:3px 7px;border-radius:10px;background:#ff0000;color:#fff;font-size:9px;font-weight:900;margin-left:5px}.fav{background:#160000;color:#ffcc66;border:1px solid #6a4500;padding:8px 12px;border-radius:18px;cursor:pointer}.sort{padding:9px;border-radius:18px;background:#170000;color:#fff;border:1px solid #5a0000}
+.back{color:#ff7777;background:#1a0000;border:1px solid #6a0000;padding:9px 18px;border-radius:20px;cursor:pointer}
+#modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(20,0,0,.92);z-index:100;display:none;padding:15px;overflow-y:auto}
+.modal-box{max-width:420px;margin:15px auto;background:#1a0000;border:2px solid red;border-radius:24px;overflow:hidden;box-shadow:0 0 40px rgba(255,0,0,0.5)}
+.foto{width:100%;height:340px;object-fit:cover}
+
+/* EFECTO IGUAL AL TITULO PRINCIPAL */
+#fNombre{
+  font-size:19px;
+  font-weight:900;
+  letter-spacing:1px;
+  line-height:1.15;
+  margin:0 0 14px;
+  padding:8px 0 10px;
+  text-align:center;
+  background:linear-gradient(180deg,#fff,#ff9999,#ff0000);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  text-shadow:0 0 30px rgba(255,0,0,0.8);
+  border-bottom:1px solid rgba(255,0,0,0.2);
+}
+#fCategoria{
+  font-size:14px;
+  font-weight:800;
+  color:#ff3333;
+  text-shadow:0 0 12px red, 0 0 25px rgba(255,0,0,0.8);
+  letter-spacing:2.5px;
+  text-transform:uppercase;
+  text-align:center;
+  margin-bottom:10px;
+}
+#fStats{
+  font-size:13px;
+  font-weight:800;
+  background:linear-gradient(90deg,#ffd580,#ffb84d,#ff9900,#ffd580);
+  background-size:200% auto;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:shine 2.5s linear infinite;
+  text-align:center;
+  margin-bottom:16px;
+}
+#fDesc{
+  font-size:12.5px;
+  line-height:1.55;
+  color:#fffacd;
+  background:rgba(255,250,205,0.06);
+  border:1px solid rgba(255,250,205,0.15);
+  border-radius:14px;
+  padding:12px;
+  white-space:pre-wrap;
+  text-align:left;
+}
+.btn-unete{
+  display:block;
+  background:linear-gradient(90deg,#ff0000,#ff6600,#ff9900,#ff0000);
+  background-size:300% auto;
+  color:#fff;
+  padding:19px 18px;
+  border-radius:30px;
+  font-weight:900;
+  font-size:20px;
+  letter-spacing:1px;
+  text-decoration:none;
+  margin-top:18px;
+  animation:shine 2s linear infinite;
+  box-shadow:0 0 30px rgba(255,0,0,0.8);
+  text-transform:uppercase;
+  text-align:center;
+}
+.bottom-area{position:fixed;bottom:0;left:0;right:0;padding:10px 12px;background:linear-gradient(180deg,rgba(0,0,0,0.85),#000);border-top:2px solid red;z-index:15;box-sizing:border-box;width:100%}
+.bottom-row{display:flex;gap:8px;margin-bottom:8px;width:100%;box-sizing:border-box}
+.btn-bottom{flex:1;padding:13px 4px;border-radius:30px;font-weight:900;font-size:10.5px;text-decoration:none;background:#1a0000;border:2px solid #ff4444;color:#fff;display:block;text-align:center;box-shadow:0 0 15px rgba(255,0,0,0.4);box-sizing:border-box;min-width:0}
+.btn-bottom.full{width:100%;max-width:100%;box-sizing:border-box;background:linear-gradient(90deg,#ff0000,#ff3333);font-size:15px;font-weight:900;padding:16px 8px;letter-spacing:1px;box-shadow:0 0 20px rgba(255,0,0,0.6);display:block;margin:0 auto;border-radius:30px;border:2px solid #ff7777;text-align:center}
+#home{padding-bottom:200px}#listaPage{padding-bottom:200px}
+</style></head><body>
+<div class="topbar"><a href="admin.html" style="color:#ff5555;border:1px solid red;padding:5px 10px;border-radius:20px;text-decoration:none;font-size:10px">🔐 Panel</a><div class="logo-text">🔥 SEXOMANIA 🔥</div><div style="width:50px"></div></div>
+<div id="home">
+<div class="header-principal">
+<div class="logo-img"><img src="https://raw.githubusercontent.com/Nikki-Resendizx/Sexomania-links/main/Logo.webp" alt="logo"></div>
+<h1 class="titulo-principal">SEXOMANIA</h1>
+<div class="subtitulo">LINKS DE GRUPOS Y CANALES</div>
+<div class="divider"></div>
+</div>
+<div class="menu">
+<button class="btn-sec" onclick="openSec('CANALES ADULTOS')">🔞 𝐂𝐚𝐧𝐚𝐥𝐞𝐬 𝐃𝐞 𝐀𝐩𝐨𝐫𝐭𝐞𝐬 𝐗𝐗𝐗 🔞 ➜</button>
+<button class="btn-sec" onclick="openSec('GRUPOS ADULTOS')">🔞 𝐆𝐫𝐮𝐩𝐨𝐬 𝐃𝐞 𝐀𝐩𝐨𝐫𝐭𝐞𝐬 𝐗𝐗𝐗 🔞 ➜</button>
+<button class="btn-sec" onclick="openSec('VENTAS')">💸 𝐆𝐫𝐮𝐩𝐨𝐬 𝐝𝐞 𝐕𝐞𝐧𝐭𝐚𝐬 ✚𝟏𝟖 💸 ➜</button>
+<button class="btn-sec" onclick="openSec('PUBLICITARIOS')">📢 𝐂𝐚𝐧𝐚𝐥𝐞𝐬 & 𝐆𝐫𝐮𝐩𝐨𝐬 𝐏𝐮𝐛𝐥𝐢𝐜𝐢𝐭𝐚𝐫𝐢𝐨𝐬 📢 ➜</button>
+<button class="btn-sec" onclick="openSec('ENTRETENIMIENTO')">🍿 (𝐂 & 𝐆) 𝐃𝐞 𝐄𝐧𝐭𝐫𝐞𝐭𝐞𝐧𝐢𝐦𝐢𝐞𝐧𝐭𝐨🍿 ➜</button>
+<button class="btn-sec" onclick="openSec('ARTE')">🎨 𝐂𝐚𝐧𝐚𝐥𝐞𝐬 & 𝐆𝐫𝐮𝐩𝐨𝐬 𝐃𝐞 𝐀𝐫𝐭𝐞𝐬 🎨 ➜</button>
+<button class="btn-sec" onclick="openSec('Venta de Articulos')">💰(𝐂 & 𝐆) 𝐃𝐞 𝐕𝐞𝐧𝐭𝐚𝐬 𝐃𝐞 𝐀𝐫𝐭𝐢𝐜𝐮𝐥𝐨𝐬💰 ➜</button>
+<button class="btn-sec" onclick="openSec('BOTS')">🤖 𝐋𝐨𝐬 𝐌𝐞𝐣𝐨𝐫𝐞𝐬 𝐁𝐎𝐓𝐒 🤖 ➜</button>
+</div>
+</div>
+<div id="listaPage" class="list"><button class="back" onclick="goHome()">← Volver</button><h3 id="tituloSec" style="color:#ff3333;text-shadow:0 0 10px red;margin:15px 0;font-size:20px"></h3><input id="busqueda" class="search" placeholder="🔎 Buscar por nombre..." oninput="render()"><div class="tools"><select id="orden" class="sort" onchange="render()"><option value="popular">🔥 Más visitados</option><option value="reciente">🆕 Más nuevos</option><option value="nombre">🔤 Nombre</option><option value="favoritos">⭐ Favoritos</option></select><button class="fav" onclick="mostrarFavoritos()">⭐ Mis favoritos</button></div><div id="listaCanales">Cargando...</div></div>
+<div class="bottom-area">
+<div class="bottom-row">
+<a class="btn-bottom" href="https://t.me/Sexomanialinksbot" target="_blank">🔘 ✚ 𝘽𝙊𝙏𝙊𝙉𝙀𝙍𝘼</a>
+<a class="btn-bottom" href="https://t.me/SexomaniaListas_Bot" target="_blank">📝 ✚ 𝙇𝙄𝙎𝙏𝘼𝙎</a>
+</div>
+<a class="btn-bottom full" href="https://t.me/Sexomania_Links" target="_blank">🔥 𝗖𝗔𝗡𝗔𝗟 𝗢𝗙𝗜𝗖𝗜𝗔𝗟 🔥</a>
+</div>
+<div id="modal" onclick="if(event.target==this) cerrar()"><div class="modal-box"><img id="fFoto" class="foto"><div style="padding:18px">
+<div id="fNombre"></div>
+<div id="fCategoria"></div>
+<div id="fStats"></div>
+<div id="fDesc"></div>
+<a id="fLink" class="btn-unete" target="_blank">⚡ UNETE AQUI ⚡</a><button onclick="reportar()" style="margin-top:10px;background:#170000;color:#ff9999;border:1px solid #5a0000;padding:9px 18px;border-radius:20px">🚩 REPORTAR</button>
+<button onclick="cerrar()" style="margin-top:14px;background:#1a0000;color:#ff7777;border:1px solid #6a0000;padding:10px 20px;border-radius:20px">Cerrar</button>
+</div></div></div>
+<script type="module">
+let sec="", todos=[], modalId=null;
+const favKey="sexomania_favoritos";
+const favoritos=()=>JSON.parse(localStorage.getItem(favKey)||"[]");
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+const esActivo=c=>c.activo!==false;
+const esNuevo=c=>{if(c.nuevo===true)return true; if(!c.fecha||!c.fecha.toDate)return false; return (Date.now()-c.fecha.toDate().getTime())<604800000;};
+const fechaMs=c=>c.fecha&&c.fecha.toDate?c.fecha.toDate().getTime():0;
+const etiqueta=c=>c.etiqueta||((c.destacado)?"DESTACADO":"");
+window.openSec=s=>{sec=s;document.getElementById("home").style.display="none";document.getElementById("listaPage").style.display="block";document.getElementById("tituloSec").innerText=s;document.getElementById("busqueda").value="";render();};
+window.goHome=()=>{document.getElementById("listaPage").style.display="none";document.getElementById("home").style.display="block";};
+window.mostrarFavoritos=()=>{sec="__FAVORITOS__";document.getElementById("home").style.display="none";document.getElementById("listaPage").style.display="block";document.getElementById("tituloSec").innerText="⭐ MIS FAVORITOS";document.getElementById("busqueda").value="";render();};
+function render(){
+  let db=todos.filter(c=>esActivo(c)&&(sec==="__FAVORITOS__"?favoritos().includes(c.id):c.seccion===sec));
+  const q=(document.getElementById("busqueda")?.value||"").trim().toLowerCase();
+  if(q) db=db.filter(c=>String(c.nombre||"").toLowerCase().includes(q)||String(c.desc||"").toLowerCase().includes(q));
+  const orden=document.getElementById("orden")?.value||"popular";
+  if(orden==="nombre") db.sort((a,b)=>String(a.nombre||"").localeCompare(String(b.nombre||"")));
+  else if(orden==="reciente") db.sort((a,b)=>fechaMs(b)-fechaMs(a));
+  else if(orden==="favoritos") db.sort((a,b)=>Number(favoritos().includes(b.id))-Number(favoritos().includes(a.id)));
+  else db.sort((a,b)=>Number(b.clicks||0)-Number(a.clicks||0));
+  const d=document.getElementById("listaCanales");
+  d.innerHTML=db.length?db.map(c=>{const f=favoritos().includes(c.id),b=etiqueta(c)||((esNuevo(c))?"NUEVO":"");return '<button class="item-lista" onclick="ver(\''+c.id+'\')"><span>❥ '+esc(c.nombre)+' '+(c.clicks?'• '+c.clicks+'𓁻':'')+(b?'<span class="badge">'+esc(b)+'</span>':'')+'<small>'+esc(c.seccion)+'</small></span><span onclick="event.stopPropagation();toggleFav(\''+c.id+'\')">'+(f?"⭐":"☆")+'</span></button>';}).join(""):'<p style="color:#ff5555">Aún no hay canales aquí</p>';
+}
+window.toggleFav=id=>{let f=favoritos();f=f.includes(id)?f.filter(x=>x!==id):f.concat(id);localStorage.setItem(favKey,JSON.stringify(f));render();};
+window.ver=async id=>{
+  let c=todos.find(x=>x.id===id); if(!c||!esActivo(c))return; modalId=id;
+  document.getElementById("fFoto").src=c.foto; document.getElementById("fNombre").innerText=c.nombre;
+  document.getElementById("fCategoria").innerText="☛ "+c.seccion+" ☚";
+  document.getElementById("fStats").innerText="𓁻 "+(c.clicks||0)+" VISTAS"+(c.destacado?" • 📌 DESTACADO":"");
+  document.getElementById("fDesc").innerText=c.desc||"Sin descripción";
+  let l=document.getElementById("fLink"); l.href=c.link;
+  l.onclick=async()=>{try{await upDoc(docu(db,"chats",id),{clicks:incr(1)})}catch(e){}};
+  document.getElementById("modal").style.display="block";
+};
+window.cerrar=()=>{document.getElementById("modal").style.display="none";modalId=null;};
+window.reportar=()=>{let c=todos.find(x=>x.id===modalId);if(c&&c.reporte)window.open(c.reporte,"_blank");else alert("El enlace de reporte no está configurado.");};
+onSnapshot(col(db,"chats"),snap=>{
+  todos=[];snap.forEach(d=>todos.push({id:d.id,...d.data()}));if(sec)render();
+  if(modalId){let actual=todos.find(x=>x.id===modalId);if(actual)document.getElementById("fStats").innerText="𓁻 "+(actual.clicks||0)+" VISTAS"+(actual.destacado?" • 📌 DESTACADO":"");}
+});
+</script></body></html>
