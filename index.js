@@ -6,6 +6,7 @@ const path = require('path');
 
 const WEB_PORT = Number(process.env.PORT || 3000);
 const WEB_ROOT = path.join(__dirname, 'web');
+const WEBAPP_URL = process.env.WEBAPP_URL || process.env.RENDER_EXTERNAL_URL || '';
 
 function sendHttp(res, status, contentType, body) {
   res.writeHead(status, {
@@ -135,6 +136,7 @@ bot.start(async ctx => {
       [Markup.button.callback('📁 CATEGORÍAS', 'ver_categorias_user')],
       [Markup.button.callback('🟢 MIS GRUPOS', 'mis_chats')],
       [Markup.button.callback('🔵 + CANAL O GRUPO', 'agregar_chat')],
+      ...(WEBAPP_URL ? [[Markup.button.webApp('🌐 WEBAPP', WEBAPP_URL)]] : []),
       [Markup.button.url('🔴 CANAL OFICIAL', process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/Sexomania_Links')]
     ]);
     const caption = '🔥 <b>Bienvenid@ ' + escapeHtml(nombre) + ' a SEXOMANIA</b> 🔥\n\n😈 El bot más cochino de Telegram 😈';
