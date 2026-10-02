@@ -2,6 +2,7 @@ const { Markup } = require('telegraf');
 const { db, isFirebaseReady } = require('../../config/firebase');
 const { isAdmin, ADMIN_IDS, CACHE_CANALES } = require('../../config/constantes');
 const { getCategorias, agregarCategoria, editarCategoria, eliminarCategoria, moverCategoria, limpiarCacheCategorias } = require('../../config/categorias');
+const { sendToStore } = require('../../config/telegramStore');
 
 const guard = ctx => isAdmin(ctx.from && ctx.from.id);
 const panelKeyboard = () => Markup.inlineKeyboard([
@@ -276,12 +277,14 @@ function register(bot) {
       const value = ctx.message.text.trim();
       if (!value || value.startsWith('/')) return next();
       await db.collection('config').doc('bot').set({ welcomeText: value }, { merge: true });
+      try { await sendToStore(ctx.telegram, 'bienvenida', '📝 <b>TEXTO DE BIENVENIDA ACTUALIZADO</b>\\n\\n' + value, { parse_mode: 'HTML' }); } catch (e) { console.error('❌ Store bienvenida texto:', e.message); }
       ctx.session.adminWelcomeText = null;
       return ctx.reply('✅ Texto de bienvenida actualizado.');
     }
     if (ctx.session.adminWelcomePhoto && ctx.message.photo?.length) {
       const photo = ctx.message.photo[ctx.message.photo.length - 1].file_id;
       await db.collection('config').doc('bot').set({ welcomePhoto: photo }, { merge: true });
+      try { await ctx.telegram.sendPhoto(require('../../config/telegramStore').STORE_GROUP_ID, photo, { message_thread_id: await require('../../config/telegramStore').getStoreTopic('bienvenida'), caption: '🖼️ <b>FOTO DE BIENVENIDA ACTUALIZADA</b>', parse_mode: 'HTML' }); } catch (e) { console.error('❌ Store bienvenida foto:', e.message); }
       ctx.session.adminWelcomePhoto = null;
       return ctx.reply('✅ Foto de bienvenida actualizada.');
     }
