@@ -69,7 +69,7 @@ function setupUsersHandler(bot) {
     });
 
     await ctx.editMessageText(lines.join('\n'), Markup.inlineKeyboard([
-      [Markup.button.callback('⬅️ VOLVER', 'admin_user_' + userId)]
+      [Markup.button.callback('⬅️ VOLVER', 'admin_user_' + userId, { style: 'secondary' })]
     ]));
     await ctx.answerCbQuery();
   });
