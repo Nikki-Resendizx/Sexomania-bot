@@ -246,6 +246,7 @@ bot.use(canalesHandler.canalesMiddleware());
 require('./handlers/admin/chats')(bot);
 require('./handlers/admin/users')(bot);
 require('./handlers/admin/publicaciones')(bot);
+require('./handlers/admin/advanced')(bot);
 require('./handlers/admin/super')(bot);
 require('./handlers/user/menu')(bot);
 
