@@ -129,19 +129,15 @@ function setupAdminNavigation(bot) {
   ]);
 
   menu('adm_publicaciones_menu', '📢 PUBLICACIONES\\n\\nContenido publicado y gestión.', [
-    [Markup.button.callback('📢 GESTIONAR PUBLICACIONES', 'admin_publicaciones')],
-    [Markup.button.callback('👁️ BORRADORES', 'dif_ver_borrador')]
+    [Markup.button.callback('📢 GESTIONAR PUBLICACIONES', 'admin_publicaciones')]
   ]);
 
-  menu('adm_lists_menu', '📝 LISTAS\\n\\nCreación, revisión y publicación.', [
-    [Markup.button.callback('📝 CREAR / EDITAR LISTA', 'dif_crear_lista')],
-    [Markup.button.callback('👁️ VISTA PREVIA', 'dif_ver_borrador')],
-    [Markup.button.callback('📢 PUBLICAR LISTAS', 'publicar_listas_now')]
+  menu('adm_lists_menu', '📝 LISTAS\\n\\nAdministra las listas guardadas en Firebase.', [
+    [Markup.button.callback('📝 CREAR / EDITAR / ELIMINAR', 'admin_lists_manage')]
   ]);
 
-  menu('adm_button_menu', '🔘 BOTONERA\\n\\nConfiguración de botones y estilos.', [
-    [Markup.button.callback('⚙️ CONFIGURAR BOTONERA', 'admin_difusor')],
-    [Markup.button.callback('👁️ VISTA PREVIA', 'dif_ver_borrador')]
+  menu('adm_button_menu', '🔘 BOTONERA\\n\\nLa botonera de SEXOMANIA se administra actualmente desde su bot independiente.', [
+    [Markup.button.url('💟 ABRIR BOTONERA', 'https://t.me/sexomanialinksbot')]
   ]);
 
   menu('adm_bot_menu', '🤖 BOT\\n\\nConfiguración general del bot.', [
@@ -150,9 +146,8 @@ function setupAdminNavigation(bot) {
     [Markup.button.callback('🩺 DIAGNÓSTICO', 'adm_diagnostic')]
   ]);
 
-  menu('adm_admins_menu', '👑 ADMINISTRADORES\\n\\nControl de administradores y permisos.', [
-    [Markup.button.callback('👮 GESTIÓN DE ADMINS', 'super_admins')],
-    [Markup.button.callback('🔐 PERMISOS', 'super_admins')]
+  menu('adm_admins_menu', '👑 ADMINISTRADORES\\n\\nGestiona los IDs autorizados para administrar el bot.', [
+    [Markup.button.callback('👮 GESTIÓN DE ADMINS', 'super_admins')]
   ]);
 
   menu('adm_storage_menu', '🗄️ ALMACENAMIENTO\\n\\nCaché, respaldo y estado de datos.', [
@@ -161,11 +156,9 @@ function setupAdminNavigation(bot) {
     [Markup.button.callback('🩺 ESTADO / DIAGNÓSTICO', 'adm_diagnostic')]
   ]);
 
-  menu('adm_tools_menu', '🧰 HERRAMIENTAS\\n\\nOperaciones de mantenimiento y verificación.', [
-    [Markup.button.callback('🔍 BUSCAR', 'super_user_search')],
-    [Markup.button.callback('🔗 ACTUALIZAR ENLACES', 'actualizar_links_now')],
-    [Markup.button.callback('💀 REVISAR CAÍDOS', 'revisar_caidos_now')],
-    [Markup.button.callback('🔍 VERIFICAR ROTOS', 'super_verify_links')],
+  menu('adm_tools_menu', '🧰 HERRAMIENTAS\\n\\nOperaciones de mantenimiento y verificación disponibles.', [
+    [Markup.button.callback('🔍 BUSCAR USUARIOS', 'super_user_search')],
+    [Markup.button.callback('🔍 VERIFICAR ENLACES', 'super_verify_links')],
     [Markup.button.callback('🛡️ SEGURIDAD', 'super_security')],
     [Markup.button.callback('🧹 MANTENIMIENTO', 'adm_maintenance')]
   ]);
