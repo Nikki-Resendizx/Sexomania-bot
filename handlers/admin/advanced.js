@@ -22,7 +22,7 @@ function register(bot){
     if(!guard(ctx))return ctx.answerCbQuery('⛔',{show_alert:true});
     const d=await db.collection('listas').doc(ctx.match[1]).get();if(!d.exists)return ctx.answerCbQuery('No encontrada',{show_alert:true});
     const x=d.data()||{};await ctx.editMessageText('📝 LISTA\n\n🆔 '+d.id+'\n🏷️ '+(x.titulo||'Sin título')+'\n📌 Elementos: '+(x.items?.length||0),menu([
-      [Markup.button.callback('📢 PUBLICAR','list_publish_'+d.id,{style:'success'}),Markup.button.callback('🗑️ ELIMINAR','list_delete_'+d.id,{style:'danger'})]
+      [Markup.button.callback('👁️ VISTA PREVIA','list_publish_'+d.id,{style:'success'}),Markup.button.callback('🗑️ ELIMINAR','list_delete_'+d.id,{style:'danger'})]
     ]));await ctx.answerCbQuery();
   });
   bot.action(/^list_publish_(.+)$/,async ctx=>{
