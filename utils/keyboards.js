@@ -26,7 +26,7 @@ function getMenuInline() {
     [{ text: '👥 ✚ 𝙂𝙍𝙐𝙋𝙊 / 𝘾𝘼𝙉𝘼𝙇', callback_data: 'agregar_chat', style: 'success' }],
     [{ text: '🗂️ 𝙈𝙄𝙎 𝘾𝙃𝘼𝙏𝙎', callback_data: 'mis_chats', style: 'danger' }],
     ...(process.env.WEBAPP_URL ? [[{ text: '🖥️ 𝙎𝙀𝙓𝙊𝙈𝘼𝙉𝙄𝘼 𝙋𝘼𝙉𝙀𝙇', web_app: { url: process.env.WEBAPP_URL }, style: 'primary' }]] : []),
-    [{ text: '📢 𝘾𝘼𝙉𝘼𝙇 𝙊𝙁𝙄𝘾𝙄𝘼𝙇', url: process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/Sexomania_Links', style: 'success' }],
+    [{ text: '📢 𝘾𝘼𝙉𝘼𝙇 𝙊𝙁𝙄𝘾𝙄𝘼𝙇', url: process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/SexomaniaLinks', style: 'success' }],
     [
       { text: '💟 𝘽𝙊𝙏𝙊𝙉𝙀𝙍𝘼', url: 'http://t.me/SexomaniaLinksBot', style: 'danger' },
       { text: '📝 𝙇𝙄𝙎𝙏𝘼𝙎', url: 'https://t.me/SexomaniaListas_Bot', style: 'danger' }
