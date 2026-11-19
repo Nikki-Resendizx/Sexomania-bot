@@ -1,4 +1,5 @@
 const { db } = require('./firebase');
+const { STORE_GROUP_ID } = require('./telegramStore');
 
 async function configureNotificationTopic(ctx) {
   const chat = ctx.chat;
@@ -9,7 +10,7 @@ async function configureNotificationTopic(ctx) {
   if (!threadId) {
     throw new Error('Ejecuta el comando dentro del tema específico (no en el chat privado ni en el tema General).');
   }
-  const target = await ctx.telegram.getChat(chat.id);
+  const target = await ctx.telegram.getChat(STORE_GROUP_ID);
   if (!target.is_forum) {
     throw new Error('Este grupo no tiene Temas activados. Activa Temas en los ajustes del grupo y vuelve a intentarlo.');
   }
@@ -20,7 +21,7 @@ async function configureNotificationTopic(ctx) {
   }
   if (!db) throw new Error('Firebase/Firestore no está configurado; no puedo guardar el destino.');
   const config = {
-    groupId: chat.id,
+    groupId: STORE_GROUP_ID,
     threadId,
     groupTitle: target.title || chat.title || 'Grupo de notificaciones',
     configuredBy: ctx.from.id,
