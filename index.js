@@ -66,6 +66,7 @@ webServer.listen(WEB_PORT, '0.0.0.0', () => {
 const { Telegraf, session, Markup } = require('telegraf');
 const { isAdmin } = require('./config/constantes');
 const { ensureStoreTopics, sendToStore } = require('./config/telegramStore');
+const { sendNotification, configureNotificationTopic } = require('./config/notificaciones');
 
 const token = process.env.BOT_TOKEN || process.env.TOKEN_BOT;
 if (!token) throw new Error('❌ Falta BOT_TOKEN/TOKEN_BOT en las variables de entorno.');
@@ -118,6 +119,7 @@ async function registrarUsuario(ctx) {
 
   try {
     await sendToStore(ctx.telegram, 'usuarios', mensaje, { parse_mode: 'HTML' });
+    await sendNotification(ctx.telegram, mensaje, { parse_mode: 'HTML' });
   } catch (storeError) {
     console.error('❌ Error registrando usuario en Telegram Store:', storeError.message);
   }
@@ -231,6 +233,21 @@ bot.action('start_menu', async ctx => {
 bot.command('cancel', async ctx => {
   if (ctx.session) ['esperandoCanal','cambiandoEnlace','cambiandoNombre','adminCategoryAction','publicacion','userAddChat','adminWelcomeText','adminWelcomePhoto'].forEach(k => delete ctx.session[k]);
   await ctx.reply('✅ Operación cancelada.');
+});
+
+bot.command('setnotificaciones', async ctx => {
+  if (!isAdmin(ctx.from && ctx.from.id)) return ctx.reply('⛔ Solo administradores.');
+  try {
+    const result = await configureNotificationTopic(ctx);
+    await ctx.reply('✅ GRUPO DE NOTIFICACIONES CONFIGURADO\\n\\n' +
+      '📣 Grupo: ' + result.groupTitle + '\\n' +
+      '🧵 Tema ID: ' + result.threadId + '\\n\\n' +
+      'A partir de ahora las alertas del bot se enviarán a este tema.');
+    await sendNotification(ctx.telegram, '🟢 <b>NOTIFICACIONES ACTIVADAS</b>\\n\\nEste tema quedó configurado para recibir alertas de SEXOMANIA.', { parse_mode: 'HTML' });
+  } catch (error) {
+    console.error('❌ /setnotificaciones:', error.message);
+    await ctx.reply('❌ No se pudo configurar el grupo de notificaciones.\\n\\n' + error.message);
+  }
 });
 
 bot.command('setfoto', async ctx => {
