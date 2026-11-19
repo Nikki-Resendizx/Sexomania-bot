@@ -5,7 +5,10 @@ async function configureNotificationTopic(ctx) {
   const chat = ctx.chat;
   const threadId = Number(ctx.message?.message_thread_id);
   if (!chat || !['group', 'supergroup'].includes(chat.type)) {
-    throw new Error('Ejecuta /setnotificaciones dentro del grupo que recibirá las alertas.');
+    throw new Error('Ejecuta /setnotificaciones dentro del tema NOTIFICACIONES del Telegram Store.');
+  }
+  if (Number(chat.id) !== Number(STORE_GROUP_ID)) {
+    throw new Error('Este comando debe ejecutarse dentro del mismo grupo configurado como Telegram Store.');
   }
   if (!threadId) {
     throw new Error('Ejecuta el comando dentro del tema específico (no en el chat privado ni en el tema General).');
@@ -15,7 +18,7 @@ async function configureNotificationTopic(ctx) {
     throw new Error('Este grupo no tiene Temas activados. Activa Temas en los ajustes del grupo y vuelve a intentarlo.');
   }
   const me = await ctx.telegram.getMe();
-  const member = await ctx.telegram.getChatMember(chat.id, me.id);
+  const member = await ctx.telegram.getChatMember(STORE_GROUP_ID, me.id);
   if (!['administrator', 'creator', 'member'].includes(member.status)) {
     throw new Error('El bot no tiene acceso a este grupo.');
   }
