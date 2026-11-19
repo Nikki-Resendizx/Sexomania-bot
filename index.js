@@ -177,6 +177,21 @@ function getWelcomeKeyboard() {
 
 bot.start(async ctx => {
   try {
+    const payload = String(ctx.startPayload || '');
+    const match = payload.match(/^c_([A-Za-z0-9_-]{1,60})$/);
+    if (match) {
+      const { getWebAppChat } = require('./config/webappData');
+      const { prepararFotoTelegram, crearCaptionWebApp } = require('./utils/webappExtractor');
+      const chat = await getWebAppChat(match[1]);
+      if (!chat || chat.activo === false) return ctx.reply('❌ Esta publicación ya no está disponible.');
+      const rows = [];
+      if (chat.link) rows.push([{ text: '⚡ UNIRME AL GRUPO / CANAL ⚡', url: String(chat.link) }]);
+      rows.push([{ text: '🌐 ABRIR SEXOMANIA', web_app: { url: WEBAPP_URL } }]);
+      const caption = crearCaptionWebApp(chat);
+      const foto = prepararFotoTelegram(chat.foto);
+      if (foto) return ctx.replyWithPhoto(foto, { caption, parse_mode: 'HTML', reply_markup: { inline_keyboard: rows } });
+      return ctx.reply(caption, { parse_mode: 'HTML', reply_markup: { inline_keyboard: rows } });
+    }
     await registrarUsuario(ctx);
     const nombre = ctx.from.first_name || 'bebé';
     const foto = await getFotoBienvenida();
