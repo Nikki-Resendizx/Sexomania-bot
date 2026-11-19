@@ -11,7 +11,8 @@ const STORE_TOPICS = [
   { key: 'admins', name: '👑 ADMINS', icon_color: 16749490 },
   { key: 'canales', name: '📢 CANALES', icon_color: 7322096 },
   { key: 'configuracion', name: '⚙️ CONFIGURACIÓN', icon_color: 9367192 },
-  { key: 'cache', name: '🧹 CACHÉ', icon_color: 16766590 }
+  { key: 'cache', name: '🧹 CACHÉ', icon_color: 16766590 },
+  { key: 'notificaciones', name: '🔔 NOTIFICACIONES', icon_color: 7322096 }
 ];
 
 let cache = null;
