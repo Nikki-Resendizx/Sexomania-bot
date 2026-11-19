@@ -7,7 +7,7 @@ const path = require('path');
 const WEB_PORT = Number(process.env.PORT || 3000);
 const WEB_ROOT = path.join(__dirname, 'web');
 const WEBAPP_URL = process.env.WEBAPP_URL || 'https://sexomania-links.vercel.app/';
-const OFFICIAL_CHANNEL_URL = process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/Sexomania_Links';
+const OFFICIAL_CHANNEL_URL = process.env.OFFICIAL_CHANNEL_URL || 'https://t.me/SexomaniaLinks';
 const BOTONERA_URL = 'http://t.me/sexomanialinksbot';
 const LISTAS_URL = 'https://t.me/SexomaniaListas_Bot';
 const ADD_GROUP_URL = 'https://t.me/Sexomanialinkbot?startgroup&admin=post_messages+edit_messages+delete_messages+invite_users+pin_messages+manage_chat';
