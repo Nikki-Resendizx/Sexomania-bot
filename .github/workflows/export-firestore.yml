@@ -1,0 +1,30 @@
+name: Export Firebase backup (read-only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install export dependency
+        run: npm install --no-save firebase-admin
+      - name: Export Firestore without modifying it
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scripts/export-firestore.mjs
+      - name: Upload private backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sexomania-firestore-export
+          path: backups/firestore-export.json
+          retention-days: 1
